@@ -5,6 +5,8 @@ Port Android de **ani-es**, el CLI de anime con doble fuente
 original (`/home/meldrickv/ani-es/ani-es`), pero con UI grafica:
 
 - Busqueda, portadas, descripciones y tags.
+- Barra de navegacion: Busqueda global, Plataformas (AnimeFLV/J-Kanime con
+  mas populares/recientes y buscar por fuente), Biblioteca e Historial.
 - Biblioteca/favoritos, historial y progreso por episodio.
 - Reproductor interno (Media3/ExoPlayer) con headers Referer/User-Agent.
 
@@ -14,7 +16,7 @@ original (`/home/meldrickv/ani-es/ani-es`), pero con UI grafica:
 |---|---|---|
 | F0 | Scaffolding: modulos `:app` + `:core:scraper`, CI, versionado auto | hecho |
 | F1 | Busqueda real contra ambas fuentes | hecho |
-| F2 | Detalle (cover, desc, tags) + fixtures | pendiente |
+| F2 | Navegacion (busqueda/plataformas/biblioteca/historial), portada home y detalle (cover, descripcion, tags) | hecho |
 | F3 | `:data` Room | pendiente |
 | F4 | Episodios | pendiente |
 | F5 | Player | pendiente |

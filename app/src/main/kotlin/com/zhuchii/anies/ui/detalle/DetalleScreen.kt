@@ -134,10 +134,11 @@ private fun ContenidoDetalle(detalle: AnimeDetalle, titulo: String, modifier: Mo
             )
         }
 
-        if (detalle.description != null) {
+        val descripcion = detalle.description
+        if (descripcion != null) {
             Spacer(Modifier.height(12.dp))
             Text(
-                text = detalle.description,
+                text = descripcion,
                 style = MaterialTheme.typography.bodyMedium,
             )
         }
