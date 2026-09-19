@@ -284,6 +284,21 @@ CLI). Se incorporara como cache local en F3/Room.
   amendea SIEMPRE el ultimo commit con `[skip ci]` + force-push nada mas
   pusheas, asi que cada fix exige `git fetch origin && git rebase origin/main`
   antes de volver a pushear (el parche previo sale como "ya en upstream").
+- `2026-09-19` F6: badges de episodios vistos: `EpisodiosViewModel` observa
+  `ProgresoRepository` y `EpisodiosUiState.Listo` gana `vistos: Set<String>`.
+  Numero "pelicula" se guarda como episodio 1 (igual que CLI) pero se mapea
+  de vuelta a "pelicula" cuando la lista contiene ese numero. La celda pintada
+  usa surfaceVariant + check (icons-core).
+- `2026-09-19` F6: sincronizacion del history.json del CLI via SAF
+  (`OpenDocument`). `HistoryJsonParser` (en `:core:scraper`, kotlinx-
+  serialization): mapa `titulo -> {last_cap, progress, source}`, lectura
+  tolerante (ignoreUnknownKeys, JSON invalido -> vacio, sin source -> fuera)
+  + `progresoToMs("HH:MM:SS")`. `ImportadorHistorial` (app): como el JSON
+  guarda TITULO y Room usa slug, resuelve cada titulo con la busqueda real de
+  su fuente y solo toma el primer resultado cuyo titulo coincida normalizado;
+  escribe `historial` + `progreso` (los badges de F6). Los titulos sin
+  coincidencia se reportan, no se borran. Historias vacias o fuente desconocida
+  se saltan. Boton "Importar history.json" en HistorialScreen (outlined + Add).
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
@@ -311,6 +326,6 @@ chrisbanes/skills, noloman/Android-AI-skills, Google Android skills.
 - [x] F3: `:data` Room (favs, historial, progreso) + activar KSP.
 - [x] F4: lista de episodios por anime.
 - [x] F5: player Media3 con headers (Referer/User-Agent) en el movil.
-- [ ] F6: badges de no vistos + sincronizar historial desde history.json.
+- [x] F6: badges de no vistos + sincronizar historial desde history.json.
 - [ ] F7: pulido (navegacion, dark mode, estados vacios, Lint 0 deps).
 - [ ] Crear el remoto de GitHub (lo hace el usuario) y conectar.
