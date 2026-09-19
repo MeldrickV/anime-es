@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -88,6 +91,7 @@ fun EpisodiosScreen(
                 items(estado.episodios, key = { it.numero }) { episodio ->
                     CeldaEpisodio(
                         episodio = episodio,
+                        visto = episodio.numero in estado.vistos,
                         onClick = { onEpisodioClick(episodio.numero) },
                     )
                 }
@@ -97,19 +101,37 @@ fun EpisodiosScreen(
 }
 
 @Composable
-private fun CeldaEpisodio(episodio: Episodio, onClick: () -> Unit) {
+private fun CeldaEpisodio(episodio: Episodio, visto: Boolean, onClick: () -> Unit) {
     Button(
         onClick = onClick,
+        colors = if (visto) {
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            ButtonDefaults.buttonColors()
+        },
         modifier = Modifier
             .padding(4.dp)
             .fillMaxWidth()
             .aspectRatio(1.4f),
     ) {
-        Text(
-            text = episodio.numero,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = episodio.numero,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+            )
+            if (visto) {
+                Spacer(Modifier.size(4.dp))
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = "Visto",
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
     }
 }
