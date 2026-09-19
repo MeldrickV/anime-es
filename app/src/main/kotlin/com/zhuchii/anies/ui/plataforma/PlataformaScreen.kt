@@ -11,8 +11,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -156,10 +159,18 @@ private fun ListaHome(
                 Button(onClick = onReintentar) { Text("Reintentar") }
             }
 
-            animes.isEmpty() -> Text(
-                text = "Sin animes en esta lista.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            animes.isEmpty() -> Column(Modifier.align(Alignment.Center)) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.List,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "Sin animes en esta lista.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
 
             else -> LazyColumn(Modifier.fillMaxSize()) {
                 items(

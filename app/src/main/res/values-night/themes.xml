@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Variante nocturna: sigue al sistema como el colorScheme de Compose
+         (AniEsTheme ya alterna; esto evita el destello del fondo claro y
+         deja las system bars oscuras al arrancar en modo nocturno). -->
+    <style name="Theme.AniEs" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/background_dark</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>
