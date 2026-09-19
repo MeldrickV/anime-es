@@ -209,7 +209,7 @@ chrisbanes/skills, noloman/Android-AI-skills, Google Android skills.
 ## 11. Trabajo pendiente (roadmap)
 
 - [x] F0 scaffolding (este repo) + AGENTS con todo el contexto.
-- [ ] F1: buscar real AnimeFLV+JKanime en `:core:scraper`, UI de busqueda.
+- [x] F1: buscar real AnimeFLV+JKanime en `:core:scraper`, UI de busqueda.
 - [ ] F2: detalle con cover/descripcion/tags + fixtures en CI.
 - [ ] F3: `:data` Room (favs, historial, progreso) + activar KSP.
 - [ ] F4: lista de episodios por anime.

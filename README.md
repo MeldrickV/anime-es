@@ -12,8 +12,8 @@ original (`/home/meldrickv/ani-es/ani-es`), pero con UI grafica:
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| F0 | Scaffolding: modulos `:app` + `:core:scraper`, CI, versionado auto | en curso |
-| F1 | Busqueda real contra ambas fuentes | pendiente |
+| F0 | Scaffolding: modulos `:app` + `:core:scraper`, CI, versionado auto | hecho |
+| F1 | Busqueda real contra ambas fuentes | hecho |
 | F2 | Detalle (cover, desc, tags) + fixtures | pendiente |
 | F3 | `:data` Room | pendiente |
 | F4 | Episodios | pendiente |
