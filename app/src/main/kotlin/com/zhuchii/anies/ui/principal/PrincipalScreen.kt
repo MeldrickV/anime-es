@@ -67,10 +67,10 @@ fun PrincipalScreen() {
                 PlataformaScreen(onAnimeClick = { navController.abrirDetalle(it) })
             }
             composable(DestinoRaiz.BIBLIOTECA.ruta) {
-                BibliotecaScreen()
+                BibliotecaScreen(onAnimeClick = { navController.abrirDetalle(it) })
             }
             composable(DestinoRaiz.HISTORIAL.ruta) {
-                HistorialScreen()
+                HistorialScreen(onAnimeClick = { navController.abrirDetalle(it) })
             }
             composable(
                 route = RUTA_DETALLE,

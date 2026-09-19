@@ -24,3 +24,4 @@ rootProject.name = "ani-es-android"
 
 include(":app")
 include(":core:scraper")
+include(":data")

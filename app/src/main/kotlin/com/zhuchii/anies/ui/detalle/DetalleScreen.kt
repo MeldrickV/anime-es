@@ -13,6 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -33,16 +35,17 @@ import coil3.compose.AsyncImage
 import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.Source
 
-/** Detalle de un anime: cover, sinopsis y tags desde la fuente (F2). */
+/** Detalle de un anime: cover, sinopsis y tags (F2) + favorito e historial (F3). */
 @Composable
 fun DetalleScreen(
     source: Source,
     slug: String,
     titulo: String,
     onBack: () -> Unit,
-    viewModel: DetalleViewModel = viewModel { DetalleViewModel(source, slug) },
+    viewModel: DetalleViewModel = viewModel { DetalleViewModel(source, slug, titulo) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val esFavorito by viewModel.esFavorito.collectAsStateWithLifecycle()
 
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -81,6 +84,8 @@ fun DetalleScreen(
             is DetalleUiState.Listo -> ContenidoDetalle(
                 detalle = estado.detalle,
                 titulo = titulo.ifBlank { estado.detalle.title },
+                esFavorito = esFavorito,
+                onToggleFavorito = viewModel::onToggleFavorito,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             )
         }
@@ -88,7 +93,13 @@ fun DetalleScreen(
 }
 
 @Composable
-private fun ContenidoDetalle(detalle: AnimeDetalle, titulo: String, modifier: Modifier) {
+private fun ContenidoDetalle(
+    detalle: AnimeDetalle,
+    titulo: String,
+    esFavorito: Boolean,
+    onToggleFavorito: () -> Unit,
+    modifier: Modifier,
+) {
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
@@ -107,11 +118,32 @@ private fun ContenidoDetalle(detalle: AnimeDetalle, titulo: String, modifier: Mo
             Spacer(Modifier.height(16.dp))
         }
 
-        Text(
-            text = titulo,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = titulo,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(onClick = onToggleFavorito) {
+                Icon(
+                    imageVector = if (esFavorito) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                    contentDescription = if (esFavorito) {
+                        "Quitar de favoritos"
+                    } else {
+                        "Añadir a favoritos"
+                    },
+                    tint = if (esFavorito) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        }
 
         val etiquetas = listOfNotNull(
             detalle.estado,

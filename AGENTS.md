@@ -24,14 +24,14 @@ Modulos (Gradle multiplataforma):
 |---|---|---|
 | `:app` | Android app / Compose | UI (Inicio, Explorar, Biblioteca), navegacion, Media3 (player) |
 | `:core:scraper` | Kotlin JVM puro | Logica de extraccion AnimeFLV + J-Kanime (OkHttp/JSoup), sin Android |
-| `:data` | FASE 3 | Room (biblioteca, historial, favs, progreso) — se POSTERGA a Fase 3 |
+| `:data` | Android lib / Room | F3: biblioteca/favoritos, historial, progreso (Room 2.8.2 + KSP) |
 
 Flujo de datos:
 
 ```
 UI (Compose) -> ViewModel -> Repository  -> :core:scraper (OkHttp) -> fuentes
                                   ^
-                                  |-- :data / Room (Fase 3, estado persistente)
+                                  |-- :data / Room (estado persistente)
                             -> Media3 ExoPlayer (streaming con headers)
 ```
 
@@ -122,12 +122,13 @@ AGP 9.x + Gradle 9.x + compileSdk 37 + BOM 2026.08.00 + Kotlin embebido
 
 ```
 ani-es-android/
-├── settings.gradle.kts          # :app + :core:scraper (:data en F3)
+├── settings.gradle.kts          # :app + :core:scraper + :data
 ├── build.gradle.kts             # plugins raiz (solo los que se usan YA)
 ├── gradle.properties            # jvmargs, flags + anies.versionName/Code
 ├── gradle/libs.versions.toml    # catalog de versiones (matriz seccion 5)
 ├── gradle/wrapper/              # wrapper oficial gradle 8.13 (no regenerar)
 ├── core/scraper/                # Kotlin JVM puro, tests deterministas
+├── data/                        # F3: Room (favoritos, historial, progreso)
 └── app/                         # Compose: MainActivity, theme, pantallas
 ```
 
@@ -233,6 +234,21 @@ CLI). Se incorporara como cache local en F3/Room.
   declared in different module": smart cast solo aplica dentro del mismo
   modulo, y `AnimeDetalle` vive en `:core:scraper`. La sinopsis se captura
   en un `val` local antes del `if`.
+- `2026-09-19` F3: modulo `:data` (Android, Room 2.8.2 + KSP
+  2.2.21-2.0.4). Entidades `favoritos`/`historial`/`progreso` (source como
+  nombre del enum, mapeada a `Source` en repositorios) + DAOs + `AppDb`
+  singleton inicializado en `AnieEsApp.onCreate` (sin DI). `:data` depende
+  de `:core:scraper` SOLO por el enum `Source` (no duplicarlo).
+  Repositorios `Favorito`/`Historial`/`Progreso`. Tests de DAO con
+  Robolectric 4.14.1 (`@Config(sdk=[35])`, base en memoria).
+- `2026-09-19` F3 app: Biblioteca e Historial reales (Room): listas
+  observables, click -> detalle, X para quitar, "Borrar todo" en historial.
+  Detalle registra la visita en historial al cargar y alterna favorito con
+  el corazon (Favorite/FavoriteBorder de material-icons-core). El progreso
+  por episodio queda en tablas/repos listos; lo escribira el player (F5).
+- `2026-09-19` F3 CI-fix: reversion de icons-core — `ListAlt` NO esta en el
+  set core (48 iconos); solo `Favorite`, `FavoriteBorder`, `List` (automirrored),
+  `Close`, etc. Usar solo iconos del core o anadir material-icons-extended.
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
@@ -257,7 +273,7 @@ chrisbanes/skills, noloman/Android-AI-skills, Google Android skills.
 - [x] F1: buscar real AnimeFLV+JKanime en `:core:scraper`, UI de busqueda.
 - [x] F2: detalle con cover/descripcion/tags + fixtures en CI; navegacion
       (Plataformas con populares/recientes/buscar, Biblioteca, Historial).
-- [ ] F3: `:data` Room (favs, historial, progreso) + activar KSP.
+- [x] F3: `:data` Room (favs, historial, progreso) + activar KSP.
 - [ ] F4: lista de episodios por anime.
 - [ ] F5: player Media3 con headers (Referer/User-Agent) en el movil.
 - [ ] F6: badges de no vistos + sincronizar historial desde history.json.

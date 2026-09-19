@@ -45,6 +45,7 @@ kotlin {
 
 dependencies {
     implementation(project(":core:scraper"))
+    implementation(project(":data"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
