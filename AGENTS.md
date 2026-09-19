@@ -182,11 +182,10 @@ CLI). Se incorporara como cache local en F3/Room.
 - `2026-09-19` F0: version centralizada en gradle.properties para que
   version.yml pueda hacer sed sin tocar build.gradle.kts.
 - `2026-09-19` F1: corregida la busqueda de AnimeFLV a `/animes?buscar=`
-  en `vww.animeflv.one` (el port usaba `/browse?q=` que NO existe en el
+  en `vww.animeflv.one` (el /browse?q= del primer port no existe en el
   script); J-Kanime se busca con GET `/buscar/<q>/` + regex `<h5><a href>`
-  (csrf+POST es solo de episodios, F4). Fixtures reales capturados en
-  commit F1 (CI-only) y workflow `capture-fixtures` documentado en
-  `.opencode/skills/android-testing-fixtures`.
+  (csrf+POST es solo de episodios, F4). Fixtures capturados en CI y
+  workflow `capture-fixtures` (ver skill `android-testing-fixtures`).
 - `2026-09-19` F1 CI-fix: primer CI real fallo en `:core:scraper:compileKotlin`
   con `Unresolved reference 'model'`: `AnimeSummary.kt` vivia en `model/`
   pero declaraba el package padre `com.zhuchii.anies.scraper`. Se declara el
@@ -212,6 +211,28 @@ CLI). Se incorporara como cache local en F3/Room.
   agregados" (episodios nuevos mapeados a su anime quitando el numero).
   J-Kanime "populares" = "Top animes", "recientes" = "Animes recientes".
   Fixtures nuevos: `animeflv/{home,detalle}.html`, `jkanime/{home,detalle}.html`.
+- `2026-09-19` F2 app: barra de navegacion inferior con 4 destinos
+  (Busqueda, Plataformas, Biblioteca, Historial) en `PrincipalScreen`
+  (NavHost + NavigationBar); Plataformas elige fuente con SegmentedButton y
+  muestra pestañas Populares/Recientes/Buscar (ViewModel por pantalla, sin
+  DI); resultados de busqueda y listas del home son clickables y abren
+  `DetalleScreen` (ruta `detalle/{source}/{slug}?titulo=`). Biblioteca e
+  Historial son placeholder hasta F3. Coil 3 se configura como singleton en
+  `AnieEsApp` implementando `SingletonImageLoader.Factory` con
+  `OkHttpNetworkFetcherFactory` + User-Agent de navegador (covers de
+  animeflv/jkdesa). Se agrego `material-icons-core` EXPLICITO: material3
+  1.4.0 (BOM 2025.10) ya no lo trae transitivo y `Icons.Filled.*` no
+  compilaria sin el.
+- `2026-09-19` F2 CI-fix capture-fixtures: el run fallaba con 0 jobs
+  (workflow ni siquiera arrancaba). Causa: `- name: Capturar detalle ... (F2:
+  cover/sinopsis/tags)` con `:` + espacio dentro del scalar sin comillas =
+  YAML invalido ("mapping values are not allowed here"). Los name con
+  `:` se entrecomillan.
+- `2026-09-19` F2 CI-fix: `DetalleScreen.kt` no compilaba con "Smart cast to
+  'String' is impossible, because 'description' is a public API property
+  declared in different module": smart cast solo aplica dentro del mismo
+  modulo, y `AnimeDetalle` vive en `:core:scraper`. La sinopsis se captura
+  en un `val` local antes del `if`.
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
@@ -234,7 +255,8 @@ chrisbanes/skills, noloman/Android-AI-skills, Google Android skills.
 
 - [x] F0 scaffolding (este repo) + AGENTS con todo el contexto.
 - [x] F1: buscar real AnimeFLV+JKanime en `:core:scraper`, UI de busqueda.
-- [ ] F2: detalle con cover/descripcion/tags + fixtures en CI.
+- [x] F2: detalle con cover/descripcion/tags + fixtures en CI; navegacion
+      (Plataformas con populares/recientes/buscar, Biblioteca, Historial).
 - [ ] F3: `:data` Room (favs, historial, progreso) + activar KSP.
 - [ ] F4: lista de episodios por anime.
 - [ ] F5: player Media3 con headers (Referer/User-Agent) en el movil.
