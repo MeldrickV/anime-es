@@ -34,13 +34,14 @@ jobs:
           VCODE=$(grep -oP '^anies\.versionCode=\K.*' gradle.properties)
           echo "versionName=$VNAME" >> "$GITHUB_OUTPUT"
           echo "versionCode=$VCODE" >> "$GITHUB_OUTPUT"
-          echo "msg=$(git log -1 --pretty=%B)" >> "$GITHUB_OUTPUT"
 
       - name: Calcular nueva version
         id: bump
         run: |
           VERSION="${{ steps.current.outputs.versionName }}"
-          MSG="${{ steps.current.outputs.msg }}"
+          # El mensaje se lee aqui (no via GITHUB_OUTPUT): los commits multi-linea
+          # rompen el formato de los outputs de GitHub Actions.
+          MSG="$(git log -1 --pretty=%B)"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           BUMPED=0
           if [[ "$MSG" == *"BREAKING CHANGE"* ]]; then
@@ -53,7 +54,9 @@ jobs:
             echo "sin bump (no feat/fix/BREAKING)"
           fi
           # Sin bump no se emite new_version: un chore/docs NO debe amendar ni etiquetar.
-          [[ "$BUMPED" == "1" ]] && echo "new_version=$MAJOR.$MINOR.$PATCH" >> "$GITHUB_OUTPUT"
+          if [[ "$BUMPED" == "1" ]]; then
+            echo "new_version=$MAJOR.$MINOR.$PATCH" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Actualizar gradle.properties y etiquetar
         if: steps.bump.outputs.new_version != ''

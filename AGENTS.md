@@ -183,6 +183,11 @@ CLI). Se incorporara como cache local en F3/Room.
   emite cuando hay bump (feat/fix/BREAKING); los commits del bot con `[skip ci]`
   y los chore/docs quedan intactos. Nota: los force-push del bot (GITHUB_TOKEN)
   no re-disparan workflows, asi que no hay bucle de versionado.
+- `2026-09-19` F1 CI-fix version.yml (2): el paso "Read version actual" hacia
+  `echo "msg=$(git log --pretty=%B)" >> $GITHUB_OUTPUT`, que FALLA con
+  commits multi-linea (`Invalid format`). El mensaje ya no pasa por
+  GITHUB_OUTPUT: se lee con `git log` dentro del paso "Calcular nueva
+  version".
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
