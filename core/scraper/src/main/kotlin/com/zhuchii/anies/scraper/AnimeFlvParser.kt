@@ -2,6 +2,7 @@ package com.zhuchii.anies.scraper
 
 import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.scraper.model.Episodio
 import com.zhuchii.anies.scraper.model.HomeAnimes
 import com.zhuchii.anies.scraper.model.Source
 
@@ -118,5 +119,28 @@ object AnimeFlvParser {
             .minOrNull()
             ?: html.length
         return html.substring(inicio, fin)
+    }
+
+    // ---- Episodios (F4) ----
+
+    private val EPS_VAR = Regex("""var eps = (\[.*?\]);""", RegexOption.DOT_MATCHES_ALL)
+    private val EPS_ITEM = Regex("""\["(\d+)","(\d+)",""\]""")
+
+    /** Lista de episodios desde `var eps` del detalle: caps sueltos y rangos
+     *  (p.ej. ["24","0",""] = un cap; ["13","24"] = rango 13..24), ascendente,
+     *  sin duplicados y sin el cap "0". Port del parse del script. */
+    fun parseEpisodios(html: String): List<Episodio> {
+        val bloques = EPS_VAR.find(html)?.groupValues?.get(1) ?: return emptyList()
+        return EPS_ITEM.findAll(bloques)
+            .map { it.destructured }
+            .flatMap { (a, b) ->
+                val menor = minOf(a.toIntOrNull() ?: 0, b.toIntOrNull() ?: 0)
+                val mayor = maxOf(a.toIntOrNull() ?: 0, b.toIntOrNull() ?: 0)
+                if (mayor == 0) emptyList() else (menor..mayor).map { Episodio(it.toString()) }
+            }
+            .filter { it.numero != "0" }
+            .distinctBy { it.numero }
+            .sortedBy { it.numero.toIntOrNull() ?: 0 }
+            .toList()
     }
 }

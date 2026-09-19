@@ -78,4 +78,29 @@ class JKanimeParserTest {
         )
         assertEquals("En emision", detalle.estado)
     }
+
+    @Test
+    fun `parseEpisodios genera 1..total desde el ajax real`() {
+        val episodios = JKanimeParser.parseEpisodios(Fixtures.cargar("jkanime/episodios.json"))
+
+        assertEquals("total del JSON", 1178, JKanimeParser.parseEpisodiosTotal(Fixtures.cargar("jkanime/episodios.json")))
+        assertEquals("1", episodios.first().numero)
+        assertEquals("1178", episodios.last().numero)
+        assertEquals(1178, episodios.size)
+    }
+
+    @Test
+    fun `parseEpisodiosApi, csrf y tipo desde la pagina de detalle real`() {
+        val html = Fixtures.cargar("jkanime/detalle.html")
+
+        assertEquals(" /ajax/episodes/201/ como ruta relativa",
+            "/ajax/episodes/201/", JKanimeParser.parseEpisodiosApi(html))
+        assertTrue("csrf no vacio", JKanimeParser.parseCsrf(html)!!.isNotBlank())
+        assertEquals("Serie", JKanimeParser.parseTipo(html))
+    }
+
+    @Test
+    fun `parseEpisodios devuelve vacio sin total`() {
+        assertEquals(0, JKanimeParser.parseEpisodios("{}").size)
+    }
 }

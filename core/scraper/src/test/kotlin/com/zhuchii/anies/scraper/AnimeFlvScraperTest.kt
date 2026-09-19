@@ -88,4 +88,15 @@ class AnimeFlvScraperTest {
         assertTrue(home.populares.isNotEmpty())
         assertTrue(home.recientes.isNotEmpty())
     }
+
+    @Test
+    fun `episodios hace GET al detalle y devuelve los caps del var eps`() = runTest {
+        server.enqueue(MockResponse().setBody(Fixtures.cargar("animeflv/detalle.html")))
+        server.start()
+
+        val episodios = AnimeFlvScraper(baseUrl = server.url("/").toString()).episodios("mao-2026")
+
+        assertEquals("/anime/mao-2026", server.takeRequest().path)
+        assertEquals((1..24).map { it.toString() }, episodios.map { it.numero })
+    }
 }

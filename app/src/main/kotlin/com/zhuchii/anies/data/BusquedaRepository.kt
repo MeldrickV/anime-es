@@ -4,6 +4,7 @@ import com.zhuchii.anies.scraper.AnimeFlvScraper
 import com.zhuchii.anies.scraper.JKanimeScraper
 import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.scraper.model.Episodio
 import com.zhuchii.anies.scraper.model.HomeAnimes
 import com.zhuchii.anies.scraper.model.Source
 import kotlinx.coroutines.CancellationException
@@ -63,6 +64,12 @@ class BusquedaRepository(
     suspend fun detalle(source: Source, slug: String): AnimeDetalle = when (source) {
         Source.ANIME_FLV -> animeFlv.detalle(slug)
         Source.J_KANIME -> jkanime.detalle(slug)
+    }
+
+    /** Lista de episodios de un anime (F4). */
+    suspend fun episodios(source: Source, slug: String): List<Episodio> = when (source) {
+        Source.ANIME_FLV -> animeFlv.episodios(slug)
+        Source.J_KANIME -> jkanime.episodios(slug)
     }
 
     private suspend fun buscarParcial(

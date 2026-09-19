@@ -78,4 +78,52 @@ class JKanimeScraperTest {
         assertTrue(home.populares.isNotEmpty())
         assertTrue(home.recientes.isNotEmpty())
     }
+
+    @Test
+    fun `episodios hace GET de detalle y POST ajax con csrf y cookie de sesion`() = runTest {
+        server.enqueue(
+            MockResponse()
+                .setBody(Fixtures.cargar("jkanime/detalle.html"))
+                .setHeader("Set-Cookie", "session_cookie=abc123; Path=/; HttpOnly")
+                .setHeader("Content-Type", "text/html; charset=utf-8")
+        )
+        server.enqueue(
+            MockResponse()
+                .setBody(Fixtures.cargar("jkanime/episodios.json"))
+                .setHeader("Content-Type", "application/json; charset=utf-8")
+        )
+        server.start()
+
+        val scraper = JKanimeScraper(baseUrl = server.url("/").toString())
+        val episodios = scraper.episodios("one-piece")
+
+        assertEquals("/one-piece/", server.takeRequest().path)
+
+        val post = server.takeRequest()
+        assertEquals("POST", post.method)
+        assertEquals("/ajax/episodes/201/", post.path)
+        assertEquals("XMLHttpRequest", post.getHeader("X-Requested-With"))
+        assertTrue("csrf token en header X-CSRF-TOKEN", post.getHeader("X-CSRF-TOKEN")!!.isNotBlank())
+        assertEquals("session_cookie=abc123", post.getHeader("Cookie"))
+        assertTrue("_token en el cuerpo", post.body?.readUtf8().orEmpty().contains("_token="))
+
+        assertEquals(1178, episodios.size)
+        assertEquals("1", episodios.first().numero)
+        assertEquals("1178", episodios.last().numero)
+    }
+
+    @Test
+    fun `episodios devuelve pelicula cuando el tipo es Pelicula`() = runTest {
+        val html = """
+            <html><head><meta name="csrf-token" content="abc"></head>
+            <body><div class="anime_data"><span>Tipo:</span> Pelicula</div></body></html>
+        """.trimIndent()
+        server.enqueue(MockResponse().setBody(html))
+        server.start()
+
+        val episodios = JKanimeScraper(baseUrl = server.url("/").toString()).episodios("kimi-no-na-wa")
+
+        assertEquals(listOf("pelicula"), episodios.map { it.numero })
+        assertEquals(1, server.requestCount)
+    }
 }

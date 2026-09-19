@@ -42,6 +42,7 @@ fun DetalleScreen(
     slug: String,
     titulo: String,
     onBack: () -> Unit,
+    onVerEpisodios: () -> Unit,
     viewModel: DetalleViewModel = viewModel { DetalleViewModel(source, slug, titulo) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -86,6 +87,7 @@ fun DetalleScreen(
                 titulo = titulo.ifBlank { estado.detalle.title },
                 esFavorito = esFavorito,
                 onToggleFavorito = viewModel::onToggleFavorito,
+                onVerEpisodios = onVerEpisodios,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
             )
         }
@@ -98,6 +100,7 @@ private fun ContenidoDetalle(
     titulo: String,
     esFavorito: Boolean,
     onToggleFavorito: () -> Unit,
+    onVerEpisodios: () -> Unit,
     modifier: Modifier,
 ) {
     Column(
@@ -178,11 +181,10 @@ private fun ContenidoDetalle(
         Spacer(Modifier.height(24.dp))
 
         Button(
-            onClick = {},
-            enabled = false,
+            onClick = onVerEpisodios,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Ver episodios (F4)")
+            Text("Ver episodios")
         }
 
         Spacer(Modifier.height(24.dp))

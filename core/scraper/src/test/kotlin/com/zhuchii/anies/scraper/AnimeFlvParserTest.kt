@@ -72,4 +72,27 @@ class AnimeFlvParserTest {
                 !Regex("-\\d+$").containsMatchIn(anime.slug))
         }
     }
+
+    @Test
+    fun `parseEpisodios genera 1..24 desde el detalle real`() {
+        val episodios = AnimeFlvParser.parseEpisodios(Fixtures.cargar("animeflv/detalle.html"))
+
+        assertEquals(24, episodios.size)
+        assertEquals("1", episodios.first().numero)
+        assertEquals("24", episodios.last().numero)
+        assertEquals((1..24).map { it.toString() }, episodios.map { it.numero })
+    }
+
+    @Test
+    fun `parseEpisodios expande rangos y quita el cap 0`() {
+        val html = """<script>var eps = [["24","0",""],["13","24"],["5","3",""]];</script>"""
+        val numeros = AnimeFlvParser.parseEpisodios(html).map { it.numero }
+
+        assertEquals((1..24).map { it.toString() }, numeros)
+    }
+
+    @Test
+    fun `parseEpisodios devuelve vacio sin var eps`() {
+        assertEquals(0, AnimeFlvParser.parseEpisodios("<html>sin eps</html>").size)
+    }
 }

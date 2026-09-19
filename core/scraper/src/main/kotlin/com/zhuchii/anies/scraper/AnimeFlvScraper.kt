@@ -2,6 +2,7 @@ package com.zhuchii.anies.scraper
 
 import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.scraper.model.Episodio
 import com.zhuchii.anies.scraper.model.HomeAnimes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -61,6 +62,22 @@ class AnimeFlvScraper(
         client.newCall(request).execute().use { response ->
             check(response.isSuccessful) { "AnimeFLV HTTP ${response.code}" }
             AnimeFlvParser.parseHome(response.body?.string().orEmpty())
+        }
+    }
+
+    /**
+     * Episodios (F4): GET $AF_BASE/anime/<slug> (la misma pagina que ya usa el
+     * script para data-id/data-sl/eps) y parse del `var eps` del detalle.
+     */
+    suspend fun episodios(slug: String): List<Episodio> = withContext(Dispatchers.IO) {
+        check(slug.isNotBlank())
+        val request = Request.Builder()
+            .url("$baseUrl/anime/$slug")
+            .header("User-Agent", USER_AGENT)
+            .build()
+        client.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "AnimeFLV HTTP ${response.code}" }
+            AnimeFlvParser.parseEpisodios(response.body?.string().orEmpty())
         }
     }
 

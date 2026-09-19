@@ -2,6 +2,7 @@ package com.zhuchii.anies.scraper
 
 import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.scraper.model.Episodio
 import com.zhuchii.anies.scraper.model.HomeAnimes
 import com.zhuchii.anies.scraper.model.Source
 import java.net.URI
@@ -128,5 +129,37 @@ object JKanimeParser {
             .minOrNull()
             ?: html.length
         return html.substring(inicio, fin)
+    }
+
+    // ---- Episodios (F4) ----
+
+    private val CSRF = Regex("""meta name="csrf-token" content="([^"]+)"""")
+    private val API_EPISODIOS = Regex("""url:\s*'https://jkanime\.net(/ajax/episodes/\d+/?)'""")
+    private val TIPO = Regex("""Tipo:</span>\s*([^<]+)""")
+    private val TOTAL = Regex(""""total"\s*:\s*(\d+)""")
+
+    /** Token CSRF de la pagina de detalle (tests y POST del ajax de episodios). */
+    fun parseCsrf(html: String): String? =
+        CSRF.find(html)?.groupValues?.get(1)
+
+    /** Ruta del endpoint ajax de episodios, relativa a la base del scraper.
+     *  En la web aparece absoluta ("url: 'https://jkanime.net/ajax/episodes/201/'"),
+     *  pero el metodo devuelve la ruta para que el scraper la resuelva contra su
+     *  propia base (espejo del script, que hace POST al host de la fuente). */
+    fun parseEpisodiosApi(html: String): String? =
+        API_EPISODIOS.find(html)?.groupValues?.get(1)
+
+    /** Tipo del anime (Serie/Pelicula); el CLI navega a /<slug>/pelicula si es Pelicula. */
+    fun parseTipo(html: String): String? =
+        TIPO.find(html)?.groupValues?.get(1)?.trim()
+
+    /** Total de episodios del ajax; Port 1:1 del JSON del script (pagina 1). */
+    fun parseEpisodiosTotal(json: String): Int =
+        TOTAL.find(json)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+
+    /** Lista de episodios 1..total, igual que el `seq 1..num_episodios` del CLI. */
+    fun parseEpisodios(json: String): List<Episodio> {
+        val total = parseEpisodiosTotal(json)
+        return (1..total).map { Episodio(it.toString()) }
     }
 }

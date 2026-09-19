@@ -2,9 +2,12 @@ package com.zhuchii.anies.scraper
 
 import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.scraper.model.Episodio
 import com.zhuchii.anies.scraper.model.HomeAnimes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.Cookie
+import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
@@ -63,6 +66,65 @@ class JKanimeScraper(
             JKanimeParser.parseHome(response.body?.string().orEmpty())
         }
     }
+
+    /**
+     * Episodios (F4). Port del flujo csrf+POST del script:
+     *   - GET $nuevaurl (sin cookies) -> csrf-token, ruta de /ajax/episodes/<id>/
+     *     y "Tipo:" (una Pelicula navega a /<slug>/pelicula).
+     *   - POST $ruta-ajax con _token + X-Requested-With + X-CSRF-TOKEN + la cookie
+     *     de sesion capturada en el GET (el script la guarda con `curl -c`).
+     *   - Se lee el `total` del JSON y se genera 1..total (seq del CLI).
+     */
+    suspend fun episodios(slug: String): List<Episodio> = withContext(Dispatchers.IO) {
+        check(slug.isNotBlank())
+        val pagina = newCall(
+            Request.Builder()
+                .url("$baseUrl/$slug/")
+                .header("User-Agent", USER_AGENT)
+                .build(),
+        )
+        val tipo = JKanimeParser.parseTipo(pagina.html)
+        if (tipo.equals("Pelicula", ignoreCase = true)) {
+            return@withContext listOf(Episodio("pelicula"))
+        }
+        val csrf = JKanimeParser.parseCsrf(pagina.html)
+        val apiPath = JKanimeParser.parseEpisodiosApi(pagina.html)
+        check(csrf != null && apiPath != null) {
+            "J-Kanime: no se encontro el endpoint de episodios en la pagina"
+        }
+        val body = FormBody.Builder().add("_token", csrf).build()
+        val request = Request.Builder()
+            .url("$baseUrl$apiPath")
+            .header("User-Agent", USER_AGENT)
+            .header("X-Requested-With", "XMLHttpRequest")
+            .header("X-CSRF-TOKEN", csrf)
+            .header("Cookie", pagina.cookies)
+            .post(body)
+            .build()
+        client.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "J-Kanime HTTP ${response.code}" }
+            JKanimeParser.parseEpisodios(response.body?.string().orEmpty())
+        }
+    }
+
+    /** GET con captura de la cookie de sesion (equivalentes -c/-b de curl). */
+    private suspend fun newCall(request: Request): Pagina = withContext(Dispatchers.IO) {
+        client.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "J-Kanime HTTP ${response.code}" }
+            val html = response.body?.string().orEmpty()
+            val cookies = response.headers("Set-Cookie").mapNotNull { header ->
+                try {
+                    val c = Cookie.parse(request.url, header) ?: return@mapNotNull null
+                    "${c.name}=${c.value}"
+                } catch (_: Exception) {
+                    null
+                }
+            }.joinToString("; ")
+            Pagina(html, cookies)
+        }
+    }
+
+    private data class Pagina(val html: String, val cookies: String)
 
     companion object {
         /** Mismo UA que el wget del script original (Chrome 91 de Windows). */
