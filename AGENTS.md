@@ -249,6 +249,41 @@ CLI). Se incorporara como cache local en F3/Room.
 - `2026-09-19` F3 CI-fix: reversion de icons-core — `ListAlt` NO esta en el
   set core (48 iconos); solo `Favorite`, `FavoriteBorder`, `List` (automirrored),
   `Close`, etc. Usar solo iconos del core o anadir material-icons-extended.
+- `2026-09-19` F5: resolucion de video port 1:1 del CLI. `VideoFuente(url,
+  referer, hls)` + `FlvServidor`/`JkServidor`. AnimeFLV `video(slug, cap)`:
+  GET `/ver/<slug>-<cap>` -> `data-encrypt` (fallback hex de `"$dataId-$cap"`
+  con el `data-id` del detalle), `POST /flv` (FormBody `acc=opt&i=<enc>` +
+  `X-Requested-With: XMLHttpRequest`, Referer=capurl), `parseFlvServidores`
+  (12 servidores, dedupe y mp4upload primero), decodificarHex del embed, GET
+  del embed con Referer=capurl, `extraerUrlVideo` (primera `\.mp4|\.m3u8`),
+  `esPlayable` Range `bytes=0-0` (200/206) con Referer = origin del embed.
+  J-Kanime `video(slug, cap)`: iframe `jkplayer/um|umv` (resuelto contra
+  capurl si es relativo) -> su pagina trae `video: { url: '...' }` (HLS
+  directo, m3u8 firma con st/e que expiran), fallback `/jk.php`, fallback
+  `var servers = [...]` -> servidor "Mediafire" -> `remote` base64 -> pagina
+  `https://download...`. Fixtures live capturados en CI: `animeflv/{ver,flv}.html`,
+  `jkanime/{episodio,player}.html` (4 pasos nuevos en capture-fixtures).
+  Tests de parsers + scrapers (MockWebServer: flujo real AnimeFLV con referer
+  localhost, fallback J-Kanime Mediafire). App: `PlayerScreen` con ExoPlayer +
+  `OkHttpDataSource.Factory` (User-Agent navegador + Referer cuando
+  `video.referer != null`), `HlsMediaSource`/`ProgressiveMediaSource` segun
+  `video.hls`, `PlayerView` (media3-ui, `resizeMode` fit); `ReproductorViewModel`
+  con estado Resolviendo/Error/Listo y `guardarProgreso` (cap "pelicula" ->
+  episodio 1, igual que CLI) cada 15 s y al salir; pausa en `ON_STOP`.
+- `2026-09-19` F5 CI-fixes (4): 1) `String.toHex` usaba `CharSequence.joinToString`
+  que NO existe (String no es Iterable) -> `map { }.joinToString("")`;
+  2) `PlayerView.setShowController` no existe en la API de media3-ui 1.8
+  (solo showController()/hideController()) -> quitar, default useController
+  ya es true; 3) `Modifier.weight` se usaba dentro de `ReproductorPlayback`
+  fuera del scope del Column (unresolved) -> envolver el reproductor en un
+  `Box(Modifier.weight(1f))` en la pantalla; 4) lint `UnsafeOptInUsageError`
+  de Media3: `@OptIn(UnstableApi::class)` NO lo silencia (es un check de lint
+  error-level, no del compilador) -> `@SuppressLint("UnsafeOptInUsageError")`
+  en `ReproductorPlayback`.
+- `2026-09-19` F5: el ciclo de fix contra version.yml queda asi: version.yml
+  amendea SIEMPRE el ultimo commit con `[skip ci]` + force-push nada mas
+  pusheas, asi que cada fix exige `git fetch origin && git rebase origin/main`
+  antes de volver a pushear (el parche previo sale como "ya en upstream").
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
@@ -274,8 +309,8 @@ chrisbanes/skills, noloman/Android-AI-skills, Google Android skills.
 - [x] F2: detalle con cover/descripcion/tags + fixtures en CI; navegacion
       (Plataformas con populares/recientes/buscar, Biblioteca, Historial).
 - [x] F3: `:data` Room (favs, historial, progreso) + activar KSP.
-- [ ] F4: lista de episodios por anime.
-- [ ] F5: player Media3 con headers (Referer/User-Agent) en el movil.
+- [x] F4: lista de episodios por anime.
+- [x] F5: player Media3 con headers (Referer/User-Agent) en el movil.
 - [ ] F6: badges de no vistos + sincronizar historial desde history.json.
 - [ ] F7: pulido (navegacion, dark mode, estados vacios, Lint 0 deps).
 - [ ] Crear el remoto de GitHub (lo hace el usuario) y conectar.
