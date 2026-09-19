@@ -64,6 +64,7 @@ jobs:
           test -s "$FIX_DIR/animeflv/detalle.html"
           grep -c 'data-ep="' "$FIX_DIR/animeflv/detalle.html" > /dev/null
           grep -c 'Sinopsis' "$FIX_DIR/animeflv/detalle.html" > /dev/null
+          grep -c 'var eps = ' "$FIX_DIR/animeflv/detalle.html" > /dev/null
 
       - name: Capturar home de J-Kanime (Top animes / recientes)
         run: |
@@ -84,6 +85,21 @@ jobs:
           test -s "$FIX_DIR/jkanime/detalle.html"
           grep -c 'class="anime_info"' "$FIX_DIR/jkanime/detalle.html" > /dev/null
           grep -c 'movpic' "$FIX_DIR/jkanime/detalle.html" > /dev/null
+
+      - name: "Capturar episodios de J-Kanime (F4: ajax POST csrf de la pagina de detalle)"
+        run: |
+          set -euo pipefail
+          ANIME="https://jkanime.net/one-piece/"
+          TOKEN=$(curl -s -L -m 25 -A "$AF_UA" -c /tmp/jk_cookies.txt "$ANIME" | grep -oP 'meta name="csrf-token" content="\K[^"]+' | head -n1)
+          API=$(curl -s -L -m 25 -A "$AF_UA" "$ANIME" | grep -oP "url:\s*'\Khttps://jkanime\.net/ajax/episodes/\d+/?" | head -n1)
+          test -n "$TOKEN"
+          test -n "$API"
+          curl -s -L -m 25 -X POST "$API" -A "$AF_UA" -b /tmp/jk_cookies.txt \
+            -H "X-Requested-With: XMLHttpRequest" -H "X-CSRF-TOKEN: $TOKEN" \
+            --data-urlencode "_token=$TOKEN" \
+            -o "$FIX_DIR/jkanime/episodios.json"
+          test -s "$FIX_DIR/jkanime/episodios.json"
+          grep -q '"total"' "$FIX_DIR/jkanime/episodios.json"
 
       - name: Sanitizar fixtures (sin cookies ni tokens)
         run: |
