@@ -171,6 +171,12 @@ CLI). Se incorporara como cache local en F3/Room.
   (csrf+POST es solo de episodios, F4). Fixtures reales capturados en
   commit F1 (CI-only) y workflow `capture-fixtures` documentado en
   `.opencode/skills/android-testing-fixtures`.
+- `2026-09-19` F1 CI-fix: primer CI real fallo en `:core:scraper:compileKotlin`
+  con `Unresolved reference 'model'`: `AnimeSummary.kt` vivia en `model/`
+  pero declaraba el package padre `com.zhuchii.anies.scraper`. Se declara el
+  package correcto `com.zhuchii.anies.scraper.model` y se anaden imports de
+  `Source`/`AnimeSummary` en parsers y tests que hasta ahora dependian del
+  package compartido.
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 

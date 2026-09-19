@@ -1,4 +1,4 @@
-package com.zhuchii.anies.scraper
+package com.zhuchii.anies.scraper.model
 
 import kotlinx.serialization.Serializable
 

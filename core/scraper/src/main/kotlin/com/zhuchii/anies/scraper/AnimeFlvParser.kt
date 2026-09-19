@@ -1,5 +1,8 @@
 package com.zhuchii.anies.scraper
 
+import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.scraper.model.Source
+
 /**
  * Parser puro (sin red) de las busquedas de AnimeFLV.
  *

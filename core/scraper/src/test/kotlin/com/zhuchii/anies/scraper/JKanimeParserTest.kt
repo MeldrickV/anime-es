@@ -1,5 +1,6 @@
 package com.zhuchii.anies.scraper
 
+import com.zhuchii.anies.scraper.model.Source
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

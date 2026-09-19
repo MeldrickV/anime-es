@@ -1,6 +1,7 @@
 package com.zhuchii.anies.scraper
 
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.scraper.model.Source
 import java.net.URI
 
 /**
