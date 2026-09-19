@@ -1,6 +1,8 @@
 package com.zhuchii.anies.scraper
 
+import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.scraper.model.HomeAnimes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -13,6 +15,9 @@ import java.util.concurrent.TimeUnit
  * Port del pipeline Bash de /home/meldrickv/ani-es/ani-es:
  *   - busqueda = GET simple https://jkanime.net/buscar/<query>/ (page 1),
  *     query con espacios como guiones bajos; parse con [JKanimeParser].
+ *   - detalle (F2) = GET https://jkanime.net/<slug>/ (misma pagina que usa el
+ *     script para episodios).
+ *   - home (F2) = GET https://jkanime.net/ (populares/recientes).
  *   - el flujo csrf (_token) + POST SOLO aplica a episodios via
  *     /ajax/episodes/<id>/ (F4), NO a la busqueda.
  *   - decode del player (jkplayer/jk.php) para los enlaces directos (F4).
@@ -31,6 +36,31 @@ class JKanimeScraper(
         client.newCall(request).execute().use { response ->
             check(response.isSuccessful) { "J-Kanime HTTP ${response.code}" }
             JKanimeParser.parseBusqueda(response.body?.string().orEmpty())
+        }
+    }
+
+    /** Detalle (F2): GET https://jkanime.net/<slug>/ (pagina del script). */
+    suspend fun detalle(slug: String): AnimeDetalle = withContext(Dispatchers.IO) {
+        check(slug.isNotBlank())
+        val request = Request.Builder()
+            .url("$baseUrl/$slug/")
+            .header("User-Agent", USER_AGENT)
+            .build()
+        client.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "J-Kanime HTTP ${response.code}" }
+            JKanimeParser.parseDetalle(response.body?.string().orEmpty())
+        }
+    }
+
+    /** Portada (F2): GET https://jkanime.net/ (Top animes y recientes). */
+    suspend fun home(): HomeAnimes = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(baseUrl)
+            .header("User-Agent", USER_AGENT)
+            .build()
+        client.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "J-Kanime HTTP ${response.code}" }
+            JKanimeParser.parseHome(response.body?.string().orEmpty())
         }
     }
 

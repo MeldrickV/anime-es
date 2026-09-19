@@ -147,6 +147,22 @@ Doble fuente, misma logica que el script original:
   `/ajax/episodes/<id>/`; decode del player (jkplayer/jk.php) para enlaces
   directos.
 
+Derivados F2 (NO estan en el Bash; usan las MISMA base/endpoints del script,
+decision cerrada con el usuario):
+
+- **Detalle** en ambas fuentes (cover + sinopsis + tags): AnimeFLV usa
+  `GET $AF_BASE/anime/<slug>` (la misma pagina que baja el script para
+  `data-id`/`data-sl`/`eps`); selectores: cover `og:image` o `data-src` de
+  `.info-l`, sinopsis `div.tx > p`, generos `ul.gn`, episodios `data-ep`.
+  J-Kanime usa `GET https://jkanime.net/<slug>/`: cover `class="movpic"`,
+  sinopsis `p.scroll` de `.anime_info`, generos/estado/episodios en
+  `ul` de `.anime_data`.
+- **Portada (home)** en ambas fuentes: AnimeFLV `GET $AF_BASE/` secciones
+  "Animes en Emision" -> populares y "Ultimos episodios agregados" ->
+  recientes (episodio nuevo mapeado a su anime, sin numero). J-Kanime
+  `GET https://jkanime.net/` secciones "Top animes" -> populares y "Animes
+  recientes" -> recientes. Cada item lleva su cover.
+
 Constantes clave que respetar (mismas que el Bash): User-Agent de navegador,
 timeouts cortos, `SRC_REFERER` fijado al host del embed al descargar el video.
 Ver `core/scraper/src/main/kotlin/com/zhuchii/anies/scraper/*` para la forma
@@ -188,6 +204,14 @@ CLI). Se incorporara como cache local en F3/Room.
   commits multi-linea (`Invalid format`). El mensaje ya no pasa por
   GITHUB_OUTPUT: se lee con `git log` dentro del paso "Calcular nueva
   version".
+- `2026-09-19` F2: home (populares/recientes) y detalle (cover/sinopsis/tags)
+  de AMBAS fuentes: `AnimeFlvParser`/`JKanimeParser` reciben `parseHome` y
+  `parseDetalle`; los scrapers exponen `home()` y `detalle(slug)`. Decisiones
+  de mapeo: AnimeFLV "populares" = seccion "Animes en Emision" (el espejo no
+  tiene seccion "Populares" propia); "recientes" = "Ultimos episodios
+  agregados" (episodios nuevos mapeados a su anime quitando el numero).
+  J-Kanime "populares" = "Top animes", "recientes" = "Animes recientes".
+  Fixtures nuevos: `animeflv/{home,detalle}.html`, `jkanime/{home,detalle}.html`.
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 

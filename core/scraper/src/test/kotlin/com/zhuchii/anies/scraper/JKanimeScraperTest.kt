@@ -54,4 +54,28 @@ class JKanimeScraperTest {
         assertEquals("/buscar/shingeki/", server.takeRequest().path)
         assertTrue(ex is IllegalStateException)
     }
+
+    @Test
+    fun `detalle hace GET al slug con slash y parsea el fixture`() = runTest {
+        server.enqueue(MockResponse().setBody(Fixtures.cargar("jkanime/detalle.html")))
+        server.start()
+
+        val detalle = JKanimeScraper(baseUrl = server.url("/").toString()).detalle("one-piece")
+
+        assertEquals("/one-piece/", server.takeRequest().path)
+        assertTrue(detalle.title == "One Piece")
+        assertTrue(detalle.description!!.isNotBlank())
+    }
+
+    @Test
+    fun `home hace GET a la raiz y devuelve populares y recientes`() = runTest {
+        server.enqueue(MockResponse().setBody(Fixtures.cargar("jkanime/home.html")))
+        server.start()
+
+        val home = JKanimeScraper(baseUrl = server.url("/").toString()).home()
+
+        assertEquals("/", server.takeRequest().path)
+        assertTrue(home.populares.isNotEmpty())
+        assertTrue(home.recientes.isNotEmpty())
+    }
 }

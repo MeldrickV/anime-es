@@ -46,6 +46,45 @@ jobs:
           test -s "$FIX_DIR/jkanime/busqueda.html"
           grep -c '<h5><a' "$FIX_DIR/jkanime/busqueda.html" > /dev/null
 
+      - name: Capturar home de AnimeFLV (populares/recientes)
+        run: |
+          set -euo pipefail
+          curl -s -L -m 25 -A "$AF_UA" \
+            "https://vww.animeflv.one/" \
+            -o "$FIX_DIR/animeflv/home.html"
+          test -s "$FIX_DIR/animeflv/home.html"
+          grep -c 'Últimos episodios agregados' "$FIX_DIR/animeflv/home.html" > /dev/null
+
+      - name: Capturar detalle de AnimeFLV (F2: cover/sinopsis/tags)
+        run: |
+          set -euo pipefail
+          curl -s -L -m 25 -A "$AF_UA" \
+            "https://vww.animeflv.one/anime/mao-2026" \
+            -o "$FIX_DIR/animeflv/detalle.html"
+          test -s "$FIX_DIR/animeflv/detalle.html"
+          grep -c 'data-ep="' "$FIX_DIR/animeflv/detalle.html" > /dev/null
+          grep -c 'Sinopsis' "$FIX_DIR/animeflv/detalle.html" > /dev/null
+
+      - name: Capturar home de J-Kanime (Top animes / recientes)
+        run: |
+          set -euo pipefail
+          curl -s -L -m 25 -A "$AF_UA" \
+            "https://jkanime.net/" \
+            -o "$FIX_DIR/jkanime/home.html"
+          test -s "$FIX_DIR/jkanime/home.html"
+          grep -c 'Top animes' "$FIX_DIR/jkanime/home.html" > /dev/null
+          grep -c 'Animes recientes' "$FIX_DIR/jkanime/home.html" > /dev/null
+
+      - name: Capturar detalle de J-Kanime (F2: cover/sinopsis/tags)
+        run: |
+          set -euo pipefail
+          curl -s -L -m 25 -A "$AF_UA" \
+            "https://jkanime.net/one-piece/" \
+            -o "$FIX_DIR/jkanime/detalle.html"
+          test -s "$FIX_DIR/jkanime/detalle.html"
+          grep -c 'class="anime_info"' "$FIX_DIR/jkanime/detalle.html" > /dev/null
+          grep -c 'movpic' "$FIX_DIR/jkanime/detalle.html" > /dev/null
+
       - name: Sanitizar fixtures (sin cookies ni tokens)
         run: |
           set -euo pipefail

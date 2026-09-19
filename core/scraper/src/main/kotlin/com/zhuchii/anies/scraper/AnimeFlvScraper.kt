@@ -1,6 +1,8 @@
 package com.zhuchii.anies.scraper
 
+import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.scraper.model.HomeAnimes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -13,10 +15,12 @@ import java.util.concurrent.TimeUnit
  *
  * Port del pipeline Bash de /home/meldrickv/ani-es/ani-es:
  *   - GET $AF_BASE/animes?buscar=<query>&pag=<N> (AF_BASE = https://vww.animeflv.one)
+ *   - GET $AF_BASE/anime/<slug> para el detalle (data-id, data-sl, eps)
  *   - parse con [AnimeFlvParser]
  *
  * Espejo EXACTO del script: endpoint, base y User-Agent son los mismos. La
- * paginacion usa el parametro `pag`; la busqueda sin pag es la pagina 1.
+ * paginacion usa el parametro `pag`; la busqueda sin pag es la pagina 1. El
+ * detalle y el home son decisiones F2 sobre las mismas URLs del script.
  */
 class AnimeFlvScraper(
     private val client: OkHttpClient = defaultClient(),
@@ -34,6 +38,31 @@ class AnimeFlvScraper(
                 AnimeFlvParser.parseBusqueda(response.body?.string().orEmpty())
             }
         }
+
+    /** Detalle (F2): GET $AF_BASE/anime/<slug>, mismo endpoint del script. */
+    suspend fun detalle(slug: String): AnimeDetalle = withContext(Dispatchers.IO) {
+        check(slug.isNotBlank())
+        val request = Request.Builder()
+            .url("$baseUrl/anime/$slug")
+            .header("User-Agent", USER_AGENT)
+            .build()
+        client.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "AnimeFLV HTTP ${response.code}" }
+            AnimeFlvParser.parseDetalle(response.body?.string().orEmpty())
+        }
+    }
+
+    /** Portada (F2): GET $AF_BASE/ (populares/recientes del home real). */
+    suspend fun home(): HomeAnimes = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(baseUrl)
+            .header("User-Agent", USER_AGENT)
+            .build()
+        client.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "AnimeFLV HTTP ${response.code}" }
+            AnimeFlvParser.parseHome(response.body?.string().orEmpty())
+        }
+    }
 
     private fun String.urlEncoded(): String =
         URLEncoder.encode(this, "UTF-8").replace("+", "%20")

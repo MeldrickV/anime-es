@@ -64,4 +64,28 @@ class AnimeFlvScraperTest {
         assertEquals("/animes?buscar=shingeki&pag=2", server.takeRequest().path)
         assertTrue(ex is IllegalStateException)
     }
+
+    @Test
+    fun `detalle hace GET a anime con slug y parsea el fixture`() = runTest {
+        server.enqueue(MockResponse().setBody(Fixtures.cargar("animeflv/detalle.html")))
+        server.start()
+
+        val detalle = AnimeFlvScraper(baseUrl = server.url("/").toString()).detalle("mao-2026")
+
+        assertEquals("/anime/mao-2026", server.takeRequest().path)
+        assertTrue(detalle.description!!.isNotBlank())
+        assertEquals("mao-2026", detalle.slug)
+    }
+
+    @Test
+    fun `home hace GET a la raiz y devuelve populares y recientes`() = runTest {
+        server.enqueue(MockResponse().setBody(Fixtures.cargar("animeflv/home.html")))
+        server.start()
+
+        val home = AnimeFlvScraper(baseUrl = server.url("/").toString()).home()
+
+        assertEquals("/", server.takeRequest().path)
+        assertTrue(home.populares.isNotEmpty())
+        assertTrue(home.recientes.isNotEmpty())
+    }
 }

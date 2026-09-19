@@ -41,4 +41,35 @@ class AnimeFlvParserTest {
     fun `parseBusqueda devuelve vacio sin resultados`() {
         assertEquals(0, AnimeFlvParser.parseBusqueda("<html><body>sin resultados</body></html>").size)
     }
+
+    @Test
+    fun `parseDetalle extrae cover, sinopsis, generos, episodios y slug`() {
+        val detalle = AnimeFlvParser.parseDetalle(Fixtures.cargar("animeflv/detalle.html"))
+
+        assertEquals(Source.ANIME_FLV, detalle.source)
+        assertEquals("mao-2026", detalle.slug)
+        assertTrue("cover debe ser una URL http", detalle.coverUrl!!.startsWith("http"))
+        assertTrue(detalle.coverUrl!!.contains("mao-2026.webp"))
+        assertTrue("sinopsis no vacia", detalle.description!!.contains("Nanoka"))
+        assertTrue(
+            "generos de la pagina",
+            detalle.tags.containsAll(listOf("Historico", "Misterio", "Sobrenatural")),
+        )
+        assertEquals(24, detalle.episodeCount)
+        assertEquals("En emision", detalle.estado)
+    }
+
+    @Test
+    fun `parseHome separa populares (emision) y recientes (episodios) desde home real`() {
+        val home = AnimeFlvParser.parseHome(Fixtures.cargar("animeflv/home.html"))
+
+        assertTrue("populares no vacio", home.populares.isNotEmpty())
+        assertTrue("recientes no vacio", home.recientes.isNotEmpty())
+        assertTrue(home.populares.all { it.source == Source.ANIME_FLV && it.slug.isNotBlank() && it.title.isNotBlank() })
+        assertTrue(home.recientes.all { it.source == Source.ANIME_FLV && it.slug.isNotBlank() && it.title.isNotBlank() })
+        home.recientes.forEach { anime ->
+            assertTrue("el slug no debe arrastrar el numero de episodio: ${anime.slug}",
+                !Regex("-\\d+$").containsMatchIn(anime.slug))
+        }
+    }
 }
