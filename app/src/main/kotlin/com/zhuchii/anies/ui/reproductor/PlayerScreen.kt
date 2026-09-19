@@ -1,5 +1,6 @@
 package com.zhuchii.anies.ui.reproductor
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -114,6 +115,7 @@ fun PlayerScreen(
     }
 }
 
+@SuppressLint("UnsafeOptInUsageError")
 @OptIn(UnstableApi::class)
 @Composable
 private fun ReproductorPlayback(
