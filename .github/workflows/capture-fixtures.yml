@@ -119,4 +119,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$FIX_DIR"
           git commit -m "chore: update fixtures [skip ci]"
+          # version.yml force-pushea main al amendar commits feat/fix; rebase para
+          # no caer en un push rechazado (non-fast-forward) tras esa reescritura.
+          git fetch origin main
+          git rebase origin/main
           git push
