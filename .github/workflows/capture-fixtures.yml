@@ -55,7 +55,7 @@ jobs:
           test -s "$FIX_DIR/animeflv/home.html"
           grep -c 'Últimos episodios agregados' "$FIX_DIR/animeflv/home.html" > /dev/null
 
-      - name: Capturar detalle de AnimeFLV (F2: cover/sinopsis/tags)
+      - name: "Capturar detalle de AnimeFLV (F2: cover/sinopsis/tags)"
         run: |
           set -euo pipefail
           curl -s -L -m 25 -A "$AF_UA" \
@@ -75,7 +75,7 @@ jobs:
           grep -c 'Top animes' "$FIX_DIR/jkanime/home.html" > /dev/null
           grep -c 'Animes recientes' "$FIX_DIR/jkanime/home.html" > /dev/null
 
-      - name: Capturar detalle de J-Kanime (F2: cover/sinopsis/tags)
+      - name: "Capturar detalle de J-Kanime (F2: cover/sinopsis/tags)"
         run: |
           set -euo pipefail
           curl -s -L -m 25 -A "$AF_UA" \
