@@ -1,0 +1,67 @@
+# Captura de fixtures reales de las fuentes para los tests deterministas.
+# Corre a demanda (workflow_dispatch) o semanal; hace los MISMOS GETs que el
+# script original, vuelca el HTML a core/scraper/src/test/resources/fixtures/
+# y hace commit. Si algun fixture no llega o queda vacio, el commit NO se hace.
+name: capture-fixtures
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: capture-fixtures-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AF_UA: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+      FIX_DIR: core/scraper/src/test/resources/fixtures
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Capturar busqueda de AnimeFLV
+        run: |
+          set -euo pipefail
+          mkdir -p "$FIX_DIR/animeflv"
+          curl -s -L -m 25 -A "$AF_UA" \
+            "https://vww.animeflv.one/animes?buscar=shingeki&pag=1" \
+            -o "$FIX_DIR/animeflv/busqueda.html"
+          test -s "$FIX_DIR/animeflv/busqueda.html"
+          grep -c '<h3 class="h"><a href="./anime/' "$FIX_DIR/animeflv/busqueda.html" > /dev/null
+
+      - name: Capturar busqueda de J-Kanime
+        run: |
+          set -euo pipefail
+          mkdir -p "$FIX_DIR/jkanime"
+          curl -s -L -m 25 -A "$AF_UA" \
+            "https://jkanime.net/buscar/shingeki-no-kyojin/" \
+            -o "$FIX_DIR/jkanime/busqueda.html"
+          test -s "$FIX_DIR/jkanime/busqueda.html"
+          grep -c '<h5><a' "$FIX_DIR/jkanime/busqueda.html" > /dev/null
+
+      - name: Sanitizar fixtures (sin cookies ni tokens)
+        run: |
+          set -euo pipefail
+          for f in "$FIX_DIR"/*/*.html; do
+            sed -i '/[Ss]et-[Cc]ookie:/d' "$f" || true
+          done
+
+      - name: Commit si hay cambios
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "Fixtures sin cambios; nada que commitear."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FIX_DIR"
+          git commit -m "chore: update fixtures [skip ci]"
+          git push

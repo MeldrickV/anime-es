@@ -1,0 +1,72 @@
+# Versionado automatico (clean, sin commits de mas):
+#   * feat:      -> MINOR++ (1.0.0 -> 1.1.0)
+#   * fix:       -> PATCH++ (1.0.0 -> 1.0.1)
+#   * BREAKING -> MAJOR++ (1.0.0 -> 2.0.0)
+# El bump aplica SOLO sobre el commit mas reciente de main (todo lo demas
+# se integra por squash/rebase), asi que basta con amend + force push y tag.
+name: Auto Version (clean)
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Skip si el commit es del propio bot
+        run: |
+          if [[ "$(git log -1 --pretty=%B)" == *"[skip ci]"* ]]; then
+            echo "bot commit, no versionar"; exit 0
+          fi
+
+      - name: Read version actual
+        id: current
+        run: |
+          VNAME=$(grep -oP '^anies\.versionName=\K.*' gradle.properties)
+          VCODE=$(grep -oP '^anies\.versionCode=\K.*' gradle.properties)
+          echo "versionName=$VNAME" >> "$GITHUB_OUTPUT"
+          echo "versionCode=$VCODE" >> "$GITHUB_OUTPUT"
+          echo "msg=$(git log -1 --pretty=%B)" >> "$GITHUB_OUTPUT"
+
+      - name: Calcular nueva version
+        id: bump
+        run: |
+          VERSION="${{ steps.current.outputs.versionName }}"
+          MSG="${{ steps.current.outputs.msg }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          if [[ "$MSG" == *"BREAKING CHANGE"* ]]; then
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+          elif [[ "$MSG" == feat:* ]]; then
+            MINOR=$((MINOR + 1)); PATCH=0
+          elif [[ "$MSG" == fix:* ]]; then
+            PATCH=$((PATCH + 1))
+          else
+            echo "sin bump (no feat/fix/BREAKING)"
+          fi
+          echo "new_version=$MAJOR.$MINOR.$PATCH" >> "$GITHUB_OUTPUT"
+
+      - name: Actualizar gradle.properties y etiquetar
+        if: steps.bump.outputs.new_version != ''
+        run: |
+          NEW="${{ steps.bump.outputs.new_version }}"
+          OLDCODE="${{ steps.current.outputs.versionCode }}"
+          NEWCODE=$(( OLDCODE + 1 ))
+          sed -i "s/^anies\\.versionName=.*/anies.versionName=$NEW/" gradle.properties
+          sed -i "s/^anies\\.versionCode=.*/anies.versionCode=$NEWCODE/" gradle.properties
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gradle.properties
+          git commit --amend --no-edit --no-verify
+          git push --force
+
+          git tag -f "v$NEW"
+          git push origin "v$NEW" --force
