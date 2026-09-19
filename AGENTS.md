@@ -177,6 +177,12 @@ CLI). Se incorporara como cache local en F3/Room.
   package correcto `com.zhuchii.anies.scraper.model` y se anaden imports de
   `Source`/`AnimeSummary` en parsers y tests que hasta ahora dependian del
   package compartido.
+- `2026-09-19` F1 CI-fix version.yml: `new_version` se emitia SIEMPRE (fuera
+  del if/else de bump), asi que un `chore:`/`docs:` amend+taggeaba el commit
+  igualmente (force-push que rompio el fast-forward de la rama). Ahora solo se
+  emite cuando hay bump (feat/fix/BREAKING); los commits del bot con `[skip ci]`
+  y los chore/docs quedan intactos. Nota: los force-push del bot (GITHUB_TOKEN)
+  no re-disparan workflows, asi que no hay bucle de versionado.
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 

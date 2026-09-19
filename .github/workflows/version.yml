@@ -42,16 +42,18 @@ jobs:
           VERSION="${{ steps.current.outputs.versionName }}"
           MSG="${{ steps.current.outputs.msg }}"
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          BUMPED=0
           if [[ "$MSG" == *"BREAKING CHANGE"* ]]; then
-            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0
+            MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0; BUMPED=1
           elif [[ "$MSG" == feat:* ]]; then
-            MINOR=$((MINOR + 1)); PATCH=0
+            MINOR=$((MINOR + 1)); PATCH=0; BUMPED=1
           elif [[ "$MSG" == fix:* ]]; then
-            PATCH=$((PATCH + 1))
+            PATCH=$((PATCH + 1)); BUMPED=1
           else
             echo "sin bump (no feat/fix/BREAKING)"
           fi
-          echo "new_version=$MAJOR.$MINOR.$PATCH" >> "$GITHUB_OUTPUT"
+          # Sin bump no se emite new_version: un chore/docs NO debe amendar ni etiquetar.
+          [[ "$BUMPED" == "1" ]] && echo "new_version=$MAJOR.$MINOR.$PATCH" >> "$GITHUB_OUTPUT"
 
       - name: Actualizar gradle.properties y etiquetar
         if: steps.bump.outputs.new_version != ''
