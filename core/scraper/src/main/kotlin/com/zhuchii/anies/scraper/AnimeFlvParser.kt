@@ -3,6 +3,7 @@ package com.zhuchii.anies.scraper
 import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
 import com.zhuchii.anies.scraper.model.Episodio
+import com.zhuchii.anies.scraper.model.FlvServidor
 import com.zhuchii.anies.scraper.model.HomeAnimes
 import com.zhuchii.anies.scraper.model.Source
 
@@ -143,4 +144,52 @@ object AnimeFlvParser {
             .sortedBy { it.numero.toIntOrNull() ?: 0 }
             .toList()
     }
+
+    // ---- Video (F5) ----
+
+    private val VER_ENCRYPT = Regex("""<ul class="opt" data-encrypt="([^"]+)"""")
+    private val DETALLE_DATA_ID = Regex("""data-id="(\d+)"""")
+    private val FLV_ITEM = Regex("""<li([^>]*)>(.*?)</li>""", RegexOption.DOT_MATCHES_ALL)
+    private val FLV_ITEM_ENCRYPT = Regex("""encrypt="([^"]+)"""")
+    private val FLV_ITEM_NOMBRE = Regex("""<span>([^<]*)</span>""")
+    private val VIDEO_URL = Regex(
+        """https?://[^\s"'<>]+?\.(?:mp4|m3u8)(?:\?[^\s"'<>]*)?(?=[\s"'<>]|$)"""
+    )
+
+    /** `data-encrypt` de la pagina del reproductor (GET /ver/<slug>-<cap>). */
+    fun parseEncrypt(html: String): String? =
+        VER_ENCRYPT.find(html)?.groupValues?.get(1)
+
+    /** `data-id` del detalle; el CLI lo usa como fallback de `enc`
+     *  (hex of "$data_id-$capi") si el `data-encrypt` no aparece. */
+    fun parseDataId(html: String): Int? =
+        DETALLE_DATA_ID.find(html)?.groupValues?.get(1)?.toIntOrNull()
+
+    /** Lista de servidores del POST /flv (port del `serv_list` del script):
+     *  por cada <li encrypt="hex"><span>nombre</span>, sin duplicados y con
+     *  mp4upload al frente (preferencia del CLI). */
+    fun parseFlvServidores(html: String): List<FlvServidor> {
+        val vistos = mutableSetOf<String>()
+        return FLV_ITEM.findAll(html).mapNotNull {
+            val (attrs, inner) = it.destructured
+            val hex = FLV_ITEM_ENCRYPT.find(attrs)?.groupValues?.get(1) ?: return@mapNotNull null
+            if (!vistos.add(hex)) return@mapNotNull null
+            val nombre = FLV_ITEM_NOMBRE.find(inner)?.groupValues?.get(1)?.trim() ?: "servidor"
+            FlvServidor(nombre, hex)
+        }.sortedWith(compareBy { if (it.nombre.contains("mp4upload", ignoreCase = true)) 0 else 1 }).toList()
+    }
+
+    /** Decodifica el hex del embed (port de `bytes.fromhex(...).decode()`). */
+    fun decodificarHex(hex: String): String? = try {
+        hex.chunked(2)
+            .map { it.toInt(16).toByte() }
+            .toByteArray()
+            .decodeToString()
+    } catch (_: Exception) {
+        null
+    }
+
+    /** Primera URL .mp4/.m3u8 de la pagina del embed (reproduce el regex del script). */
+    fun extraerUrlVideo(embedHtml: String): String? =
+        VIDEO_URL.find(embedHtml)?.value
 }

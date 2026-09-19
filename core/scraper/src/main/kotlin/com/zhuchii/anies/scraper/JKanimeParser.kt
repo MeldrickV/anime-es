@@ -4,6 +4,7 @@ import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
 import com.zhuchii.anies.scraper.model.Episodio
 import com.zhuchii.anies.scraper.model.HomeAnimes
+import com.zhuchii.anies.scraper.model.JkServidor
 import com.zhuchii.anies.scraper.model.Source
 import java.net.URI
 
@@ -162,4 +163,56 @@ object JKanimeParser {
         val total = parseEpisodiosTotal(json)
         return (1..total).map { Episodio(it.toString()) }
     }
+
+    // ---- Video (F5) ----
+
+    /** src del iframe del reproductor `jkplayer/um` o `umv` de la pagina del
+     *  episodio (port del glob `jkanime.net/jkplayer/um*` del script). La URL
+     *  puede ser absoluta (jkanime.net) o relativa; el scraper la resuelve. */
+    private val JKPLAYER_IFRAME = Regex("""src="([^"]*/jkplayer/um[^"]*)"""")
+    /** sufijo de la iframe de `/jk.php` (reproductor antiguo del script). */
+    private val JKPHP_IFRAME = Regex("""<iframe[^>]+src="/jk\.php([^"]*)"""")
+    /** Url directa del bloque `video: { url: '...' }` (mismo sed del CLI). */
+    private val VIDEO_JS = Regex("""url:\s*'([^']+)'""")
+    /** `var servers = [...]` de la pagina del episodio (fallback Mediafire). */
+    private val SERVERS_VAR = Regex("""var servers = (\[.*?\]);""", RegexOption.DOT_MATCHES_ALL)
+    private val SERVERS_ITEM = Regex("""\{"remote":"([^"]+)"[^}]*"server":"([^"]+)"""")
+    private val MEDIAFIRE_DOWNLOAD = Regex("""href="([^"]*https://download[^"]*)"""")
+    private val BASE64 = Regex("""^[A-Za-z0-9+/=\s]+$""")
+
+    /** URL del iframe `jkplayer/um`/`umv` (null si la pagina no lo trae). */
+    fun parseJkplayerUrl(html: String): String? =
+        JKPLAYER_IFRAME.find(html)?.groupValues?.get(1)
+
+    /** Sufijo tras `/jk.php` del iframe antiguo (incluye el `?` si existe). */
+    fun parseJkPhpSuffix(html: String): String? =
+        JKPHP_IFRAME.find(html)?.groupValues?.get(1)
+
+    /** Primera `url: '...'` de la pagina del reproductor (jkplayer/jk.php). */
+    fun parseVideoUrl(playerHtml: String): String? =
+        VIDEO_JS.find(playerHtml)?.groupValues?.get(1)
+
+    /** Servidores de `var servers` (port del JSON que parsea el script). */
+    fun parseServidores(html: String): List<JkServidor>? {
+        val bloques = SERVERS_VAR.find(html)?.groupValues?.get(1) ?: return null
+        return SERVERS_ITEM.findAll(bloques).map {
+            val (remote, server) = it.destructured
+            JkServidor(server, remote)
+        }.toList()
+    }
+
+    /** Decodifica base64 (port de `base64.b64decode(...).decode()`). */
+    fun decodificarBase64(b64: String): String? {
+        val limpio = b64.trim().replace(Regex("\\s+"), "")
+        if (limpio.length % 4 != 0 || !BASE64.containsMatchIn(limpio)) return null
+        return try {
+            String(java.util.Base64.getDecoder().decode(limpio)).ifBlank { null }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** Enlace `https://download...` de la pagina de Mediafire (port del script). */
+    fun parseMediafireUrl(html: String): String? =
+        MEDIAFIRE_DOWNLOAD.find(html)?.groupValues?.get(1)
 }

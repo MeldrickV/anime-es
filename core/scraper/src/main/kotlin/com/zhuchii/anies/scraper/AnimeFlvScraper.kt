@@ -4,8 +4,11 @@ import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
 import com.zhuchii.anies.scraper.model.Episodio
 import com.zhuchii.anies.scraper.model.HomeAnimes
+import com.zhuchii.anies.scraper.model.VideoFuente
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.FormBody
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.URLEncoder
@@ -80,6 +83,87 @@ class AnimeFlvScraper(
             AnimeFlvParser.parseEpisodios(response.body?.string().orEmpty())
         }
     }
+
+    /**
+     * Resolucion del video de un episodio (F5). Port exacto de
+     * `ver_episodio_af`: GET /ver/<slug>-<cap> -> `data-encrypt` (fallback hex
+     * de "$data_id-$capi"), POST /flv, decodifica el hex de cada embed, extrae
+     * la primera URL .mp4/.m3u8 de la pagina del embed y valida contra Range
+     * 0-0 con el Referer correcto (SRC_REFERER = origin del embed).
+     */
+    suspend fun video(slug: String, cap: String): VideoFuente = withContext(Dispatchers.IO) {
+        check(slug.isNotBlank() && cap.isNotBlank())
+        val capurl = "$baseUrl/ver/$slug-$cap"
+
+        val verHtml = get(capurl)
+        var enc = AnimeFlvParser.parseEncrypt(verHtml)
+        if (enc == null) {
+            val dataId = AnimeFlvParser.parseDataId(get("$baseUrl/anime/$slug"))
+            enc = dataId?.let { id -> "$id-$cap".toHex() }
+        }
+        checkNotNull(enc) { "AnimeFLV: no se encontro el data-encrypt del reproductor" }
+
+        val servidores = AnimeFlvParser.parseFlvServidores(postFlv(enc, capurl))
+        check(servidores.isNotEmpty()) { "AnimeFLV: sin servidores para $slug cap $cap" }
+
+        for (servidor in servidores) {
+            val embedUrl = AnimeFlvParser.decodificarHex(servidor.hex) ?: continue
+            val embedHtml = get(embedUrl, capurl)
+            val videoUrl = AnimeFlvParser.extraerUrlVideo(embedHtml) ?: continue
+            val referer = originOf(embedUrl) ?: continue
+            if (esPlayable(videoUrl, referer)) {
+                return@withContext VideoFuente(videoUrl, referer, videoUrl.contains(".m3u8"))
+            }
+        }
+        error("AnimeFLV: ningun servidor ofrece video directo")
+    }
+
+    private fun get(url: String, referer: String? = null): String {
+        val builder = Request.Builder().url(url).header("User-Agent", USER_AGENT)
+        referer?.let { builder.header("Referer", it) }
+        return client.newCall(builder.build()).execute().use { response ->
+            check(response.isSuccessful) { "AnimeFLV HTTP ${response.code}" }
+            response.body?.string().orEmpty()
+        }
+    }
+
+    private fun postFlv(enc: String, capurl: String): String {
+        val request = Request.Builder()
+            .url("$baseUrl/flv")
+            .header("User-Agent", USER_AGENT)
+            .header("Referer", capurl)
+            .header("X-Requested-With", "XMLHttpRequest")
+            .post(FormBody.Builder().add("acc", "opt").add("i", enc).build())
+            .build()
+        return client.newCall(request).execute().use { response ->
+            check(response.isSuccessful) { "AnimeFLV HTTP ${response.code}" }
+            response.body?.string().orEmpty()
+        }
+    }
+
+    /** Comprueba que el video responde (mismo Range 0-0 del `es_playable`). */
+    private fun esPlayable(url: String, referer: String): Boolean = try {
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", USER_AGENT)
+            .header("Referer", referer)
+            .header("Range", "bytes=0-0")
+            .build()
+        client.newCall(request).execute().use { response ->
+            response.code == 200 || response.code == 206
+        }
+    } catch (_: Exception) {
+        false
+    }
+
+    private fun originOf(url: String): String? = try {
+        val parsed = url.toHttpUrl()
+        "${parsed.scheme}://${parsed.host}"
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun String.toHex(): String = joinToString("") { byte -> "%02x".format(byte.code) }
 
     private fun String.urlEncoded(): String =
         URLEncoder.encode(this, "UTF-8").replace("+", "%20")

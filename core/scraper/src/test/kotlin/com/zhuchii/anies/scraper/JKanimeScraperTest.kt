@@ -5,6 +5,8 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -125,5 +127,54 @@ class JKanimeScraperTest {
 
         assertEquals(listOf("pelicula"), episodios.map { it.numero })
         assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `video resuelve via jkplayer um y detecta HLS`() = runTest {
+        server.start()
+        val playerUrl = server.url("/jkplayer/um?e=abc&t=xyz").toString()
+        val m3u8 = server.url("/stream/index.m3u8").toString()
+        server.enqueue(
+            MockResponse().setBody("""<html><iframe src="$playerUrl"></iframe></html>"""),
+        )
+        server.enqueue(
+            MockResponse().setBody("""<html><script>video: { url: '$m3u8', type: 'customHls' }</script></html>"""),
+        )
+
+        val fuente = JKanimeScraper(baseUrl = server.url("/").toString()).video("one-piece", "1")
+
+        assertEquals(m3u8, fuente.url)
+        assertTrue(fuente.hls)
+        assertNull(fuente.referer)
+
+        assertEquals("/one-piece/1", server.takeRequest().path)
+        val player = server.takeRequest()
+        assertEquals("/jkplayer/um", player.path)
+        assertEquals("e=abc&t=xyz", player.requestUrl?.query)
+    }
+
+    @Test
+    fun `video usa fallback Mediafire cuando no hay jkplayer`() = runTest {
+        server.start()
+        val remoteB64 = java.util.Base64.getEncoder()
+            .encodeToString(server.url("/mediafire-file").toString().toByteArray())
+        val capPage = """
+            <html><script>var servers = [
+                {"remote":"$remoteB64","slug":"x","server":"Mediafire","lang":1,"size":"52 MB","append":0}
+            ];</script></html>
+        """.trimIndent()
+        val download = "https://download123.mediafire.com/file/pelicula.mp4"
+        server.enqueue(MockResponse().setBody(capPage))
+        server.enqueue(
+            MockResponse().setBody("""<html><a href="$download">Bajar</a></html>"""),
+        )
+
+        val fuente = JKanimeScraper(baseUrl = server.url("/").toString()).video("kimi-no-na-wa", "pelicula")
+
+        assertEquals(download, fuente.url)
+        assertFalse(fuente.hls)
+
+        assertEquals("/kimi-no-na-wa/pelicula", server.takeRequest().path)
+        assertEquals("/mediafire-file", server.takeRequest().path)
     }
 }

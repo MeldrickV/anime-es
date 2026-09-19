@@ -63,5 +63,11 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+    // F5: player Media3 con OkHttpDataSource (headers Referer/User-Agent).
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.hls)
+    implementation(libs.media3.ui)
+    implementation(libs.media3.datasource.okhttp)
+
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

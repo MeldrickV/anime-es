@@ -2,6 +2,8 @@ package com.zhuchii.anies.scraper
 
 import com.zhuchii.anies.scraper.model.Source
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -94,5 +96,43 @@ class AnimeFlvParserTest {
     @Test
     fun `parseEpisodios devuelve vacio sin var eps`() {
         assertEquals(0, AnimeFlvParser.parseEpisodios("<html>sin eps</html>").size)
+    }
+
+    @Test
+    fun `parseEncrypt y parseDataId desde fixtures reales (F5)`() {
+        val ver = Fixtures.cargar("animeflv/ver.html")
+
+        assertNotNull("data-encrypt del reproductor", AnimeFlvParser.parseEncrypt(ver))
+        assertEquals(7242, AnimeFlvParser.parseDataId(Fixtures.cargar("animeflv/detalle.html")))
+    }
+
+    @Test
+    fun `parseFlvServidores extrae, dedup y ordena mp4upload primero desde flv real`() {
+        val servidores = AnimeFlvParser.parseFlvServidores(Fixtures.cargar("animeflv/flv.html"))
+
+        assertTrue("varios servidores del fixture real", servidores.size > 3)
+        assertTrue(
+            "mp4upload al frente: ${servidores.first().nombre}",
+            servidores.first().nombre.contains("mp4upload", ignoreCase = true),
+        )
+        assertEquals(servidores.size, servidores.distinctBy { it.hex }.size)
+        assertTrue(AnimeFlvParser.decodificarHex(servidores.first().hex)!!.startsWith("http"))
+    }
+
+    @Test
+    fun `extraerUrlVideo captura mp4 y m3u8 sin falsos positivos`() {
+        val mp4 = """<img src="https://cdn.example.com/a.jpg"> <video src="https://cdn.example.com/v.mp4?t=1"></video>"""
+        assertEquals("https://cdn.example.com/v.mp4?t=1", AnimeFlvParser.extraerUrlVideo(mp4))
+
+        val m3u8 = """<script>var s='https://x.net/play.m3u8?u=9';</script>"""
+        assertEquals("https://x.net/play.m3u8?u=9", AnimeFlvParser.extraerUrlVideo(m3u8))
+
+        assertNull(AnimeFlvParser.extraerUrlVideo("""<video src="https://cdn.example.com/solo-jpg.jpg"></video>"""))
+    }
+
+    @Test
+    fun `decodificarHex port del bytes-fromhex del CLI`() {
+        assertEquals("https://mp4upload.com/embed-abc.html", AnimeFlvParser.decodificarHex("68747470733a2f2f6d703475706c6f61642e636f6d2f656d6265642d6162632e68746d6c"))
+        assertNull("hex invalido", AnimeFlvParser.decodificarHex("zz"))
     }
 }

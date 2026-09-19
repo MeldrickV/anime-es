@@ -4,10 +4,12 @@ import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.AnimeSummary
 import com.zhuchii.anies.scraper.model.Episodio
 import com.zhuchii.anies.scraper.model.HomeAnimes
+import com.zhuchii.anies.scraper.model.VideoFuente
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Cookie
 import okhttp3.FormBody
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
@@ -121,6 +123,65 @@ class JKanimeScraper(
                 }
             }.joinToString("; ")
             Pagina(html, cookies)
+        }
+    }
+
+    /**
+     * Resolucion del video de un episodio (F5). Port de `videocap`:
+     *   1) iframe `jkplayer/um`/`umv` de la pagina del episodio -> su pagina
+     *      de reproductor tiene `video: { url: '...' }` (HLS directo).
+     *   2) iframe `/jk.php` (antiguo) -> mismo parse.
+     *   3) fallback `var servers` -> "Mediafire" -> `remote` (base64) como
+     *      pagina intermedia -> enlace `https://download...`.
+     */
+    suspend fun video(slug: String, cap: String): VideoFuente = withContext(Dispatchers.IO) {
+        check(slug.isNotBlank() && cap.isNotBlank())
+        val capurl = "$baseUrl/$slug/$cap"
+        val pagina = newCall(
+            Request.Builder().url(capurl).header("User-Agent", USER_AGENT).build(),
+        )
+
+        // 1) jkplayer/um (o umv): la URL es absoluta o relativa -> resolver.
+        val jkplayerUrl = JKanimeParser.parseJkplayerUrl(pagina.html)
+        val jkplayerAbs = jkplayerUrl?.let { url ->
+            try { capurl.toHttpUrl().resolve(url)?.toString() } catch (_: Exception) { null }
+        }
+        if (jkplayerAbs != null) {
+            val videoUrl = JKanimeParser.parseVideoUrl(get(jkplayerAbs, capurl))
+            if (!videoUrl.isNullOrBlank()) {
+                return@withContext VideoFuente(videoUrl, null, videoUrl.contains(".m3u8"))
+            }
+        }
+
+        // 2) jk.php (antiguo)
+        val jkphp = JKanimeParser.parseJkPhpSuffix(pagina.html)
+        if (jkphp != null) {
+            val videoUrl = JKanimeParser.parseVideoUrl(get("$baseUrl/jk.php$jkphp", capurl))
+            if (!videoUrl.isNullOrBlank()) {
+                return@withContext VideoFuente(videoUrl, null, videoUrl.contains(".m3u8"))
+            }
+        }
+
+        // 3) fallback Mediafire (`var servers` del cap)
+        val mediafireUrl = JKanimeParser.parseServidores(pagina.html)
+            ?.firstOrNull { it.nombre.equals("Mediafire", ignoreCase = true) }?.remoteB64
+            ?.let(JKanimeParser::decodificarBase64)
+        if (mediafireUrl != null) {
+            val download = JKanimeParser.parseMediafireUrl(get(mediafireUrl))
+            if (!download.isNullOrBlank()) {
+                return@withContext VideoFuente(download, null, false)
+            }
+        }
+
+        error("J-Kanime: no se pudo resolver el video del capitulo $cap")
+    }
+
+    private fun get(url: String, referer: String? = null): String {
+        val builder = Request.Builder().url(url).header("User-Agent", USER_AGENT)
+        referer?.let { builder.header("Referer", it) }
+        return client.newCall(builder.build()).execute().use { response ->
+            check(response.isSuccessful) { "J-Kanime HTTP ${response.code}" }
+            response.body?.string().orEmpty()
         }
     }
 

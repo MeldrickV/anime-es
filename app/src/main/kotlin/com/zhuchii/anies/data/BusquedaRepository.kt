@@ -7,6 +7,7 @@ import com.zhuchii.anies.scraper.model.AnimeSummary
 import com.zhuchii.anies.scraper.model.Episodio
 import com.zhuchii.anies.scraper.model.HomeAnimes
 import com.zhuchii.anies.scraper.model.Source
+import com.zhuchii.anies.scraper.model.VideoFuente
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -70,6 +71,12 @@ class BusquedaRepository(
     suspend fun episodios(source: Source, slug: String): List<Episodio> = when (source) {
         Source.ANIME_FLV -> animeFlv.episodios(slug)
         Source.J_KANIME -> jkanime.episodios(slug)
+    }
+
+    /** URL de video directa de un episodio (F5, lo consume el player). */
+    suspend fun video(source: Source, slug: String, cap: String): VideoFuente = when (source) {
+        Source.ANIME_FLV -> animeFlv.video(slug, cap)
+        Source.J_KANIME -> jkanime.video(slug, cap)
     }
 
     private suspend fun buscarParcial(

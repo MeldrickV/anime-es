@@ -101,6 +101,48 @@ jobs:
           test -s "$FIX_DIR/jkanime/episodios.json"
           grep -q '"total"' "$FIX_DIR/jkanime/episodios.json"
 
+      - name: "Capturar pagina del reproductor de AnimeFLV (F5: data-encrypt)"
+        run: |
+          set -euo pipefail
+          curl -s -L -m 25 -A "$AF_UA" \
+            "https://vww.animeflv.one/ver/mao-2026-1" \
+            -o "$FIX_DIR/animeflv/ver.html"
+          test -s "$FIX_DIR/animeflv/ver.html"
+          grep -c 'data-encrypt="' "$FIX_DIR/animeflv/ver.html" > /dev/null
+
+      - name: "Capturar lista de servidores de AnimeFLV (F5: POST /flv)"
+        run: |
+          set -euo pipefail
+          ENC=$(grep -oP '<ul class="opt" data-encrypt="\K[^"]+' "$FIX_DIR/animeflv/ver.html" | head -n1)
+          test -n "$ENC"
+          curl -s -m 25 -A "$AF_UA" -e "https://vww.animeflv.one/ver/mao-2026-1" \
+            -H "X-Requested-With: XMLHttpRequest" \
+            -X POST "https://vww.animeflv.one/flv" --data "acc=opt&i=$ENC" \
+            -o "$FIX_DIR/animeflv/flv.html"
+          test -s "$FIX_DIR/animeflv/flv.html"
+          grep -c '<li[^>]*encrypt=' "$FIX_DIR/animeflv/flv.html" > /dev/null
+
+      - name: "Capturar pagina de episodio de J-Kanime (F5: iframes jkplayer y var servers)"
+        run: |
+          set -euo pipefail
+          curl -s -L -m 25 -A "$AF_UA" \
+            "https://jkanime.net/one-piece/1" \
+            -o "$FIX_DIR/jkanime/episodio.html"
+          test -s "$FIX_DIR/jkanime/episodio.html"
+          grep -c '/jkplayer/um' "$FIX_DIR/jkanime/episodio.html" > /dev/null
+          grep -c 'var servers = ' "$FIX_DIR/jkanime/episodio.html" > /dev/null
+
+      - name: "Capturar reproductor jkplayer um de J-Kanime (F5: video: { url })"
+        run: |
+          set -euo pipefail
+          UM=$(grep -oP 'src="\Khttps://jkanime\.net/jkplayer/um[^"]*' "$FIX_DIR/jkanime/episodio.html" | head -n1)
+          test -n "$UM"
+          curl -s -L -m 25 -A "$AF_UA" -e "https://jkanime.net/one-piece/1" "$UM" \
+            -o "$FIX_DIR/jkanime/player.html"
+          test -s "$FIX_DIR/jkanime/player.html"
+          grep -c "url: '" "$FIX_DIR/jkanime/player.html" > /dev/null
+          grep -c '\.m3u8' "$FIX_DIR/jkanime/player.html" > /dev/null
+
       - name: Sanitizar fixtures (sin cookies ni tokens)
         run: |
           set -euo pipefail

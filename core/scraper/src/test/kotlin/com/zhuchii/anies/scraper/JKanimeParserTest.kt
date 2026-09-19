@@ -2,6 +2,8 @@ package com.zhuchii.anies.scraper
 
 import com.zhuchii.anies.scraper.model.Source
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -102,5 +104,48 @@ class JKanimeParserTest {
     @Test
     fun `parseEpisodios devuelve vacio sin total`() {
         assertEquals(0, JKanimeParser.parseEpisodios("{}").size)
+    }
+
+    @Test
+    fun `parseJkplayerUrl encuentra la iframe del reproductor um en la pagina real`() {
+        val url = JKanimeParser.parseJkplayerUrl(Fixtures.cargar("jkanime/episodio.html"))
+
+        assertNotNull("iframes jkplayer/um del cap real", url)
+        assertTrue(url!!.contains("/jkplayer/um"))
+    }
+
+    @Test
+    fun `parseVideoUrl saca el m3u8 del player real de jkplayer`() {
+        val url = JKanimeParser.parseVideoUrl(Fixtures.cargar("jkanime/player.html"))
+
+        assertNotNull("video: { url del player", url)
+        assertTrue(url!!.startsWith("https://"))
+        assertTrue("playlist HLS", url.contains(".m3u8"))
+    }
+
+    @Test
+    fun `parseServidores extrae el Mediafire y decodifica su remote real`() {
+        val servidores = JKanimeParser.parseServidores(Fixtures.cargar("jkanime/episodio.html"))
+
+        assertNotNull("var servers del cap real", servidores)
+        val mediafire = servidores!!.first { it.nombre == "Mediafire" }
+        val remote = JKanimeParser.decodificarBase64(mediafire.remoteB64)
+        assertNotNull(remote)
+        assertTrue(remote!!.startsWith("https://mediafire.com/") || remote.startsWith("https://media.com/"))
+    }
+
+    @Test
+    fun `parseMediafireUrl extrae el enlace de descarga`() {
+        val html = """<html><a href="/ver">x</a><a href="https://download123.mediafire.com/file/pelicula.mp4">Bajar</a></html>"""
+
+        assertEquals("https://download123.mediafire.com/file/pelicula.mp4", JKanimeParser.parseMediafireUrl(html))
+        assertNull(JKanimeParser.parseMediafireUrl("<html>sin descarga</html>"))
+    }
+
+    @Test
+    fun `parseJkPhpSuffix y decodificarBase64`() {
+        assertEquals("?v=123", JKanimeParser.parseJkPhpSuffix("""<iframe src="/jk.php?v=123"></iframe>"""))
+        assertEquals("hola", JKanimeParser.decodificarBase64("aG9sYQ=="))
+        assertNull("base64 invalido", JKanimeParser.decodificarBase64("!!!no-base64!!!"))
     }
 }
