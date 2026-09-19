@@ -163,7 +163,7 @@ class AnimeFlvScraper(
         null
     }
 
-    private fun String.toHex(): String = joinToString("") { byte -> "%02x".format(byte.code) }
+    private fun String.toHex(): String = map { byte -> "%02x".format(byte.code) }.joinToString("")
 
     private fun String.urlEncoded(): String =
         URLEncoder.encode(this, "UTF-8").replace("+", "%20")
