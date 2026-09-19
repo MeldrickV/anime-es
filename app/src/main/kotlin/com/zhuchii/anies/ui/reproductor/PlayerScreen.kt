@@ -103,10 +103,12 @@ fun PlayerScreen(
                 }
             }
 
-            is ReproductorUiState.Listo -> ReproductorPlayback(
-                video = estado.video,
-                onGuardarProgreso = viewModel::guardarProgreso,
-            )
+            is ReproductorUiState.Listo -> Box(Modifier.weight(1f)) {
+                ReproductorPlayback(
+                    video = estado.video,
+                    onGuardarProgreso = viewModel::guardarProgreso,
+                )
+            }
         }
     }
 }
@@ -176,13 +178,11 @@ private fun ReproductorPlayback(
         }
     }
 
-    Box(Modifier.weight(1f).fillMaxWidth().background(Color.Black)) {
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
                     this.player = player
-                    setShowController(true)
-                    useController = true
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                 }
             },
