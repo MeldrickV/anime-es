@@ -299,6 +299,19 @@ CLI). Se incorporara como cache local en F3/Room.
   escribe `historial` + `progreso` (los badges de F6). Los titulos sin
   coincidencia se reportan, no se borran. Historias vacias o fuente desconocida
   se saltan. Boton "Importar history.json" en HistorialScreen (outlined + Add).
+- `2026-09-19` F7: pulido = modo oscuro + lint limpio + estados vacios.
+  Compose ya alternaba el colorScheme por sistema; falta el tema base:
+  `values-night/themes.xml` (parent `android:Theme.Material.NoActionBar`, fondo
+  `background_dark`, system bars transparentes) para que el arranque no
+  destelle en claro y las system bars sean oscuras. `app/lint.xml` ignora SOLO
+  los avisos decision-driven — `NewerVersionAvailable`,
+  `AndroidGradlePluginVersion`, `GradleDependency`, `OldTargetApi` (matriz de
+  versiones congelada, sec. 5) y `HardcodedText` (espanol por diseno, sin
+  i18n); el resto del lint mantiene la exigencia y no se anade ningun dep.
+  Estado vacio de populares/recientes en Plataforma centrado con icono (mismo
+  patron que Biblioteca/Historial). F7 cerrado con su primer CI verde; la
+  fase Estable se cumple: `assembleDebug` produce `app-debug.apk` (v0.9.0).
+  Pendiente solo: crear el remoto de GitHub.
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
@@ -327,5 +340,5 @@ chrisbanes/skills, noloman/Android-AI-skills, Google Android skills.
 - [x] F4: lista de episodios por anime.
 - [x] F5: player Media3 con headers (Referer/User-Agent) en el movil.
 - [x] F6: badges de no vistos + sincronizar historial desde history.json.
-- [ ] F7: pulido (navegacion, dark mode, estados vacios, Lint 0 deps).
+- [x] F7: pulido (navegacion, dark mode, estados vacios, Lint 0 deps).
 - [ ] Crear el remoto de GitHub (lo hace el usuario) y conectar.
