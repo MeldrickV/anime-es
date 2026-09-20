@@ -58,16 +58,23 @@ object ResolverEmbedWebView {
     suspend fun resolver(embedUrl: String, referer: String): String? =
         withContext(Dispatchers.Main) {
             suspendCancellableCoroutine { cont ->
-                var encontrada = false
                 val view = webView()
                 view.stopLoading()
 
+                val handler = Handler(Looper.getMainLooper())
+                var encontrada = false
+
                 fun reportar(url: String) {
-                    if (encontrada) return
                     if (!urlVideo.matches(url)) return
-                    encontrada = true
-                    view.stopLoading()
-                    if (cont.isActive) cont.resume(url)
+                    // shouldInterceptRequest puede correr en threads de WebView
+                    // (ThreadPoolForeg): tocar el WebView y reanudar la corrutina
+                    // deben hacerse desde el main looper.
+                    handler.post {
+                        if (encontrada) return@post
+                        encontrada = true
+                        view.stopLoading()
+                        if (cont.isActive) cont.resume(url)
+                    }
                 }
 
                 view.webViewClient = object : WebViewClient() {
@@ -99,7 +106,6 @@ object ResolverEmbedWebView {
                     }
                 }
 
-                val handler = Handler(Looper.getMainLooper())
                 val resolver = Runnable {
                     if (!encontrada) {
                         view.stopLoading()

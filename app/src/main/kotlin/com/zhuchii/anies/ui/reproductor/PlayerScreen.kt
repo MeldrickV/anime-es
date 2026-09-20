@@ -103,39 +103,10 @@ fun PlayerScreen(
 
     BackHandler(enabled = enPantallaCompleta) { enPantallaCompleta = false }
 
-    if (enPantallaCompleta) {
-        Box(Modifier.fillMaxSize().background(Color.Black)) {
-            when (val estado = uiState) {
-                ReproductorUiState.Resolviendo -> Box(Modifier.fillMaxSize()) {
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
-                }
-
-                is ReproductorUiState.Error -> Box(Modifier.fillMaxSize()) {
-                    Column(
-                        Modifier.align(Alignment.Center).fillMaxWidth().padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "No se pudo reproducir: ${estado.mensaje}",
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Button(onClick = viewModel::cargar) { Text("Reintentar") }
-                    }
-                }
-
-                is ReproductorUiState.Listo -> ReproductorPlayback(
-                    video = estado.video,
-                    onGuardarProgreso = viewModel::guardarProgreso,
-                    enPantallaCompleta = true,
-                    onCambiarPantallaCompleta = { enPantallaCompleta = it },
-                )
-            }
-        }
-    } else {
-        Column(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        if (!enPantallaCompleta) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(4.dp),
+                modifier = Modifier.fillMaxWidth().padding(4.dp).align(Alignment.TopCenter),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = onBack) {
@@ -153,31 +124,39 @@ fun PlayerScreen(
                     modifier = Modifier.weight(1f),
                 )
             }
+        }
 
-            when (val estado = uiState) {
-                ReproductorUiState.Resolviendo -> Box(Modifier.weight(1f).fillMaxWidth()) {
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
-                }
+        // El padding superior deja sitio a la cabecera SOLO en vertical.
+        // ReproductorPlayback mantiene SIEMPRE la misma posicion de composicion:
+        // si se montara en ramas if/else (como antes), el remember(player) se
+        // desecharia al alternar pantalla completa y el video se reiniciaria.
+        val paddingArriba = if (enPantallaCompleta) 0.dp else 56.dp
+        when (val estado = uiState) {
+            ReproductorUiState.Resolviendo -> Box(Modifier.fillMaxSize().padding(top = paddingArriba)) {
+                CircularProgressIndicator(Modifier.align(Alignment.Center))
+            }
 
-                is ReproductorUiState.Error -> Box(Modifier.weight(1f).fillMaxWidth()) {
-                    Column(Modifier.align(Alignment.Center)) {
-                        Text(
-                            text = "No se pudo reproducir: ${estado.mensaje}",
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        Button(onClick = viewModel::cargar) { Text("Reintentar") }
-                    }
-                }
-
-                is ReproductorUiState.Listo -> Box(Modifier.weight(1f)) {
-                    ReproductorPlayback(
-                        video = estado.video,
-                        onGuardarProgreso = viewModel::guardarProgreso,
-                        enPantallaCompleta = false,
-                        onCambiarPantallaCompleta = { enPantallaCompleta = it },
+            is ReproductorUiState.Error -> Box(Modifier.fillMaxSize().padding(top = paddingArriba)) {
+                Column(
+                    Modifier.align(Alignment.Center).fillMaxWidth().padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = "No se pudo reproducir: ${estado.mensaje}",
+                        color = MaterialTheme.colorScheme.error,
                     )
+                    Spacer(Modifier.height(8.dp))
+                    Button(onClick = viewModel::cargar) { Text("Reintentar") }
                 }
+            }
+
+            is ReproductorUiState.Listo -> Box(Modifier.fillMaxSize().padding(top = paddingArriba)) {
+                ReproductorPlayback(
+                    video = estado.video,
+                    onGuardarProgreso = viewModel::guardarProgreso,
+                    enPantallaCompleta = enPantallaCompleta,
+                    onCambiarPantallaCompleta = { enPantallaCompleta = it },
+                )
             }
         }
     }
