@@ -381,6 +381,21 @@ CLI). Se incorporara como cache local en F3/Room.
   Plataforma, Biblioteca e Historial (normaliza tambien el aspecto "aplanado"
   del historial cuando una fila no tiene cover). Regex probadas contra fixtures
   y HTML live (25/17+20 AF, 13 JK fixtures; 25/17+20 AF, 19 JK live).
+- `2026-09-20` fix v0.9.5: bucle de rotacion al salir de pantalla completa con
+  el gesto de atras del telefono (Redmi/MIUI). Disparador: en fullscreen
+  (LANDSCAPE forcado + immersive), gesto de atras -> BackHandler -> PORTRAIT;
+  MIUI re-despacha el gesto durante el asentamiento de la rotacion y la app
+  alternaba LANDSCAPE/PORTRAIT en bucle (acabo mandando la app al launcher:
+  logcat mostro launcher+wallpaper a las 00:34:09). Fix en `PlayerScreen`:
+  1) toda transicion pasa por `solicitarPantallaCompleta` con guarda
+  `transicionando` de 800ms (`delay` en el effect que aplica la orientacion:
+  un solo cambio por ventana); 2) `DisposableEffect(Unit)` restaura
+  `SCREEN_ORIENTATION_PORTRAIT` al salir del reproductor por cualquier ruta
+  (si se salia en fullscreen la actividad quedaba fija a LANDSCAPE y toda la
+  app acostada; tambien aplica al boton volver y a la barra). Nota: no se
+  pudo capturar el bucle en vivo (el movil se desconecto de adb justo despues
+  del reporte); el fix corta la clase completa y se confirma en el proximo
+  build interactivo.
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
