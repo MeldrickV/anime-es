@@ -27,7 +27,6 @@ import com.zhuchii.anies.scraper.model.Source
 import com.zhuchii.anies.ui.biblioteca.BibliotecaScreen
 import com.zhuchii.anies.ui.busqueda.BusquedaScreen
 import com.zhuchii.anies.ui.detalle.DetalleScreen
-import com.zhuchii.anies.ui.episodios.EpisodiosScreen
 import com.zhuchii.anies.ui.historial.HistorialScreen
 import com.zhuchii.anies.ui.plataforma.PlataformaScreen
 import com.zhuchii.anies.ui.reproductor.PlayerScreen
@@ -46,7 +45,6 @@ private enum class DestinoRaiz(
 }
 
 private const val RUTA_DETALLE = "detalle/{source}/{slug}?titulo={titulo}"
-private const val RUTA_EPISODIOS = "episodios/{source}/{slug}?titulo={titulo}"
 private const val RUTA_PLAYER = "player/{source}/{slug}/{cap}?titulo={titulo}"
 
 /** Raiz de la app: barra de navegacion inferior + grafo de destinos. */
@@ -88,36 +86,10 @@ fun PrincipalScreen() {
                 ),
             ) { entry ->
                 val args = entry.arguments ?: return@composable
-                DetalleScreen(
-                    source = Source.valueOf(args.getString("source")!!),
-                    slug = args.getString("slug")!!,
-                    titulo = args.getString("titulo") ?: "",
-                    onBack = { navController.popBackStack() },
-                    onVerEpisodios = {
-                        navController.abrirEpisodios(
-                            source = Source.valueOf(args.getString("source")!!),
-                            slug = args.getString("slug")!!,
-                            titulo = args.getString("titulo") ?: "",
-                        )
-                    },
-                )
-            }
-            composable(
-                route = RUTA_EPISODIOS,
-                arguments = listOf(
-                    navArgument("source") { type = NavType.StringType },
-                    navArgument("slug") { type = NavType.StringType },
-                    navArgument("titulo") {
-                        type = NavType.StringType
-                        defaultValue = ""
-                    },
-                ),
-            ) { entry ->
-                val args = entry.arguments ?: return@composable
                 val source = Source.valueOf(args.getString("source")!!)
                 val slug = args.getString("slug")!!
                 val titulo = args.getString("titulo") ?: ""
-                EpisodiosScreen(
+                DetalleScreen(
                     source = source,
                     slug = slug,
                     titulo = titulo,
@@ -187,16 +159,6 @@ private fun BarraNavegacion(navController: NavHostController) {
 private fun NavHostController.abrirDetalle(anime: AnimeSummary) {
     val titulo = URLEncoder.encode(anime.title, "UTF-8").replace("+", "%20")
     navigate("detalle/${anime.source.name}/${anime.slug}?titulo=$titulo")
-}
-
-/** Abre la lista de episodios de un anime. */
-private fun NavHostController.abrirEpisodios(
-    source: Source,
-    slug: String,
-    titulo: String,
-) {
-    val tituloEnc = URLEncoder.encode(titulo, "UTF-8").replace("+", "%20")
-    navigate("episodios/${source.name}/$slug?titulo=$tituloEnc")
 }
 
 /** Abre el reproductor de un episodio. */

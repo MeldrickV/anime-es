@@ -1,6 +1,11 @@
 package com.zhuchii.anies.ui.reproductor
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +29,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +40,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -56,7 +66,10 @@ import kotlinx.coroutines.delay
 import okhttp3.OkHttpClient
 
 /** Reproductor de un episodio (F5): Media3/ExoPlayer con OkHttpDataSource y
- *  headers (Referer/User-Agent) que quitan los 403 de mp4upload/HLS. */
+ *  headers (Referer/User-Agent) que quitan los 403 de mp4upload/HLS.
+ *  Soporta pantalla completa horizontal (F8): el boton nativo de Media3 fuerza
+ *  LANDSCAPE desde la app (salta el bloqueo de rotacion del sistema), oculta
+ *  las system bars y la cabecera, y al salir vuelve al vertical. */
 @Composable
 fun PlayerScreen(
     source: Source,
@@ -67,49 +80,104 @@ fun PlayerScreen(
     viewModel: ReproductorViewModel = viewModel { ReproductorViewModel(source, slug, cap) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var enPantallaCompleta by rememberSaveable { mutableStateOf(false) }
+    val activity = LocalContext.current.findActivity()
 
-    Column(Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
-                )
-            }
-            Text(
-                text = titulo.ifBlank { "Reproductor" },
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
+    LaunchedEffect(enPantallaCompleta) {
+        val act = activity ?: return@LaunchedEffect
+        act.requestedOrientation = if (enPantallaCompleta) {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
-
-        when (val estado = uiState) {
-            ReproductorUiState.Resolviendo -> Box(Modifier.weight(1f).fillMaxWidth()) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
+        WindowCompat.getInsetsController(act.window, act.window.decorView).apply {
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            if (enPantallaCompleta) {
+                hide(WindowInsetsCompat.Type.systemBars())
+            } else {
+                show(WindowInsetsCompat.Type.systemBars())
             }
+        }
+    }
 
-            is ReproductorUiState.Error -> Box(Modifier.weight(1f).fillMaxWidth()) {
-                Column(Modifier.align(Alignment.Center)) {
-                    Text(
-                        text = "No se pudo reproducir: ${estado.mensaje}",
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Button(onClick = viewModel::cargar) { Text("Reintentar") }
+    BackHandler(enabled = enPantallaCompleta) { enPantallaCompleta = false }
+
+    if (enPantallaCompleta) {
+        Box(Modifier.fillMaxSize().background(Color.Black)) {
+            when (val estado = uiState) {
+                ReproductorUiState.Resolviendo -> Box(Modifier.fillMaxSize()) {
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
                 }
-            }
 
-            is ReproductorUiState.Listo -> Box(Modifier.weight(1f)) {
-                ReproductorPlayback(
+                is ReproductorUiState.Error -> Box(Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier.align(Alignment.Center).fillMaxWidth().padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "No se pudo reproducir: ${estado.mensaje}",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Button(onClick = viewModel::cargar) { Text("Reintentar") }
+                    }
+                }
+
+                is ReproductorUiState.Listo -> ReproductorPlayback(
                     video = estado.video,
                     onGuardarProgreso = viewModel::guardarProgreso,
+                    enPantallaCompleta = true,
+                    onCambiarPantallaCompleta = { enPantallaCompleta = it },
                 )
+            }
+        }
+    } else {
+        Column(Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                    )
+                }
+                Text(
+                    text = titulo.ifBlank { "Reproductor" },
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            when (val estado = uiState) {
+                ReproductorUiState.Resolviendo -> Box(Modifier.weight(1f).fillMaxWidth()) {
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                }
+
+                is ReproductorUiState.Error -> Box(Modifier.weight(1f).fillMaxWidth()) {
+                    Column(Modifier.align(Alignment.Center)) {
+                        Text(
+                            text = "No se pudo reproducir: ${estado.mensaje}",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Button(onClick = viewModel::cargar) { Text("Reintentar") }
+                    }
+                }
+
+                is ReproductorUiState.Listo -> Box(Modifier.weight(1f)) {
+                    ReproductorPlayback(
+                        video = estado.video,
+                        onGuardarProgreso = viewModel::guardarProgreso,
+                        enPantallaCompleta = false,
+                        onCambiarPantallaCompleta = { enPantallaCompleta = it },
+                    )
+                }
             }
         }
     }
@@ -121,8 +189,12 @@ fun PlayerScreen(
 private fun ReproductorPlayback(
     video: VideoFuente,
     onGuardarProgreso: (Long, Long) -> Unit,
+    enPantallaCompleta: Boolean,
+    onCambiarPantallaCompleta: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
+    val onCambiarActual by rememberUpdatedState(onCambiarPantallaCompleta)
+    val pantallaActual by rememberUpdatedState(enPantallaCompleta)
     val player = remember(video.url, video.referer) {
         ExoPlayer.Builder(context).build().apply {
             val okHttpClient = OkHttpClient.Builder()
@@ -188,7 +260,14 @@ private fun ReproductorPlayback(
                 PlayerView(ctx).apply {
                     this.player = player
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    setFullscreenButtonClickListener {
+                        onCambiarActual(!pantallaActual)
+                    }
                 }
+            },
+            update = { view ->
+                view.player = player
+                view.setFullscreenButtonState(enPantallaCompleta)
             },
             modifier = Modifier.fillMaxSize(),
         )
@@ -202,4 +281,10 @@ private fun ReproductorPlayback(
             modifier = Modifier.fillMaxWidth().padding(8.dp),
         )
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
