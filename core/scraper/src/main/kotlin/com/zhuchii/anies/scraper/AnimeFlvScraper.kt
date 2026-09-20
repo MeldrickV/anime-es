@@ -87,11 +87,22 @@ class AnimeFlvScraper(
     /**
      * Resolucion del video de un episodio (F5). Port exacto de
      * `ver_episodio_af`: GET /ver/<slug>-<cap> -> `data-encrypt` (fallback hex
-     * de "$data_id-$capi"), POST /flv, decodifica el hex de cada embed, extrae
-     * la primera URL .mp4/.m3u8 de la pagina del embed y valida contra Range
-     * 0-0 con el Referer correcto (SRC_REFERER = origin del embed).
+     * de "$data_id-$capi"), POST /flv y decodifica el hex de cada embed.
+     *
+     * La extraccion de la URL de video de CADA embed admite dos caminos:
+     *  1) [resolverEmbed] inyectado (App): ejecuta el embed JS-SPA en un WebView
+     *     y captura la peticion .m3u8/.mp4 (los hosts actuales no traen la URL
+     *     en el HTML, que era lo que extraia `extraerUrlVideo` del Bash).
+     *  2) fallback JVM: regex `extraerUrlVideo` sobre el HTML del embed (mismo
+     *     comportamiento que el CLI; los fixtures de los tests lo usan).
+     * Valida contra Range 0-0 con el Referer correcto (SRC_REFERER = origin
+     * del embed) en ambos casos.
      */
-    suspend fun video(slug: String, cap: String): VideoFuente = withContext(Dispatchers.IO) {
+    suspend fun video(
+        slug: String,
+        cap: String,
+        resolverEmbed: suspend (embedUrl: String, referer: String) -> String? = { _, _ -> null },
+    ): VideoFuente = withContext(Dispatchers.IO) {
         check(slug.isNotBlank() && cap.isNotBlank())
         val capurl = "$baseUrl/ver/$slug-$cap"
 
@@ -108,8 +119,9 @@ class AnimeFlvScraper(
 
         for (servidor in servidores) {
             val embedUrl = AnimeFlvParser.decodificarHex(servidor.hex) ?: continue
-            val embedHtml = get(embedUrl, capurl)
-            val videoUrl = AnimeFlvParser.extraerUrlVideo(embedHtml) ?: continue
+            val videoUrl = resolverEmbed(embedUrl, capurl) ?: runCatching {
+                AnimeFlvParser.extraerUrlVideo(get(embedUrl, capurl))
+            }.getOrNull() ?: continue
             val referer = originOf(embedUrl) ?: continue
             if (esPlayable(videoUrl, referer)) {
                 return@withContext VideoFuente(videoUrl, referer, videoUrl.contains(".m3u8"))

@@ -20,6 +20,7 @@ class AnieEsApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
+        companion.appInstance = this
         AppDb.init(this)
     }
 
@@ -41,4 +42,13 @@ class AnieEsApp : Application(), SingletonImageLoader.Factory {
             )
         }
         .build()
+
+    companion object {
+        @Volatile
+        private var appInstance: AnieEsApp? = null
+
+        /** Contexto de la aplicacion para componentes sin Activity (p.ej. el resolver WebView). */
+        fun context(): Context =
+            checkNotNull(appInstance) { "AnieEsApp no inicializada" }
+    }
 }

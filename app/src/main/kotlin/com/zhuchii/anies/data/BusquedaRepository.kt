@@ -75,7 +75,7 @@ class BusquedaRepository(
 
     /** URL de video directa de un episodio (F5, lo consume el player). */
     suspend fun video(source: Source, slug: String, cap: String): VideoFuente = when (source) {
-        Source.ANIME_FLV -> animeFlv.video(slug, cap)
+        Source.ANIME_FLV -> animeFlv.video(slug, cap, ResolverEmbedWebView::resolver)
         Source.J_KANIME -> jkanime.video(slug, cap)
     }
 
