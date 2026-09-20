@@ -81,10 +81,23 @@ fun PlayerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var enPantallaCompleta by rememberSaveable { mutableStateOf(false) }
+    var transicionando by remember { mutableStateOf(false) }
     val activity = LocalContext.current.findActivity()
 
+    // Toda transicion pasa por aqui: un solo cambio de orientacion por ventana
+    // (guarda anti-bucle: MIUI puede re-despachar el gesto de atras mientras el
+    // sistema asienta la rotacion) y nunca reinicia la reproduccion.
+    fun solicitarPantallaCompleta(objetivo: Boolean) {
+        if (transicionando || objetivo == enPantallaCompleta) return
+        transicionando = true
+        enPantallaCompleta = objetivo
+    }
+
     LaunchedEffect(enPantallaCompleta) {
-        val act = activity ?: return@LaunchedEffect
+        val act = activity ?: run {
+            transicionando = false
+            return@LaunchedEffect
+        }
         act.requestedOrientation = if (enPantallaCompleta) {
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         } else {
@@ -99,9 +112,22 @@ fun PlayerScreen(
                 show(WindowInsetsCompat.Type.systemBars())
             }
         }
+        // Deja que el sistema asiente la rotacion antes de aceptar otra
+        // transicion (evita alternar LANDSCAPE/PORTRAIT en bucle).
+        delay(800)
+        transicionando = false
     }
 
-    BackHandler(enabled = enPantallaCompleta) { enPantallaCompleta = false }
+    // Al salir del reproductor se restaura vertical: si se salio en pantalla
+    // completa, la actividad quedaria fija a LANDSCAPE y toda la app se
+    // quedaria acostada.
+    DisposableEffect(Unit) {
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+    }
+
+    BackHandler(enabled = enPantallaCompleta) { solicitarPantallaCompleta(false) }
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         if (!enPantallaCompleta) {
@@ -155,7 +181,7 @@ fun PlayerScreen(
                     video = estado.video,
                     onGuardarProgreso = viewModel::guardarProgreso,
                     enPantallaCompleta = enPantallaCompleta,
-                    onCambiarPantallaCompleta = { enPantallaCompleta = it },
+                    onCambiarPantallaCompleta = ::solicitarPantallaCompleta,
                 )
             }
         }
