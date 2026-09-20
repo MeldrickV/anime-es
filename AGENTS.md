@@ -369,6 +369,18 @@ CLI). Se incorporara como cache local en F3/Room.
   doblaje en el catalogo: todo figura "Sub español latino"; el audio latino,
   cuando existe, va por servidor dentro del mismo episodio (por eso el CLI
   prefiere mp4upload). Sin cambios de codigo por ahora, solo nota.
+- `2026-09-20` v0.9.4: miniaturas en listas y FilaAnime uniforme. Los parsers
+  NO rellenaban `coverUrl` en busqueda/home (por eso todas las listas de la
+  pestana Plataformas salian sin portada). AnimeFLV `parseBusqueda`/`parseHome`
+  ahora capturan la portada lazy (`data-src`) del `<figure class="i">` de cada
+  ficha (ancla `./anime/<slug>`; en recientes la ancla `/ver/<slug>-<cap>` map
+  la miniatura `portada/<slug>.webp`). J-Kanime `parseBusqueda` extrae el
+  `data-setbg` del `.anime__item` (imagen de fondo de la ficha). `FilaAnime`
+  dibuja SIEMPRE una miniatura 56dp (cover o placeholder PlayArrow sobre
+  surfaceVariant) y titulo con `maxLines=2` + ellipsis: filas uniformes en
+  Plataforma, Biblioteca e Historial (normaliza tambien el aspecto "aplanado"
+  del historial cuando una fila no tiene cover). Regex probadas contra fixtures
+  y HTML live (25/17+20 AF, 13 JK fixtures; 25/17+20 AF, 19 JK live).
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
