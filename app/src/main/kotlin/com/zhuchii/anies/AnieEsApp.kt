@@ -20,7 +20,7 @@ class AnieEsApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
-        companion.appInstance = this
+        appInstance = this
         AppDb.init(this)
     }
 

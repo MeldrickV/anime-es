@@ -99,15 +99,17 @@ object ResolverEmbedWebView {
                     }
                 }
 
-                val timeout = Handler(Looper.getMainLooper()).postDelayed({
+                val handler = Handler(Looper.getMainLooper())
+                val resolver = Runnable {
                     if (!encontrada) {
                         view.stopLoading()
                         if (cont.isActive) cont.resume(null)
                     }
-                }, TIMEOUT_MS)
+                }
+                handler.postDelayed(resolver, TIMEOUT_MS)
 
                 cont.invokeOnCancellation {
-                    Handler(Looper.getMainLooper()).removeCallbacks(timeout)
+                    handler.removeCallbacks(resolver)
                     view.stopLoading()
                 }
 
