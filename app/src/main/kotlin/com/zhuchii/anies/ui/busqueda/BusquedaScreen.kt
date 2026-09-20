@@ -11,8 +11,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -26,7 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.ui.components.Cargando
 import com.zhuchii.anies.ui.components.FilaAnime
+import com.zhuchii.anies.ui.components.PantallaVacia
 
 /** Contenedor stateful: conecta el ViewModel con la UI stateless. */
 @Composable
@@ -98,15 +101,13 @@ private fun ResultadoBusqueda(
 ) {
     Box(modifier.fillMaxWidth()) {
         when (uiState) {
-            BusquedaUiState.Idle -> Text(
-                text = "Escribe una busqueda para encontrar anime en AnimeFLV y J-Kanime.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            BusquedaUiState.Cargando -> CircularProgressIndicator(
+            BusquedaUiState.Idle -> PantallaVacia(
+                mensaje = "Escribe una busqueda para encontrar anime en AnimeFLV y J-Kanime.",
+                icono = Icons.Filled.Search,
                 modifier = Modifier.align(Alignment.Center),
             )
+
+            BusquedaUiState.Cargando -> Cargando(Modifier.align(Alignment.Center))
 
             is BusquedaUiState.Resultado -> ContenidoResultado(
                 uiState,

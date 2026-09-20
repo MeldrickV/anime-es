@@ -35,7 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.ui.components.Cargando
 import com.zhuchii.anies.ui.components.FilaAnime
+import com.zhuchii.anies.ui.components.PantallaVacia
 
 /** Historial: lo ultimo visto en Room. Click abre detalle; X borra, "Borrar
  *  todo" limpia, e "Importar history.json" sincroniza el historial del CLI
@@ -114,23 +116,15 @@ fun HistorialScreen(
 
         when {
             uiState.cargando -> Box(Modifier.fillMaxWidth().weight(1f)) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
+                Cargando(Modifier.align(Alignment.Center))
             }
 
             uiState.animes.isEmpty() && uiState.mensaje == null -> Box(Modifier.fillMaxWidth().weight(1f)) {
-                Column(Modifier.align(Alignment.Center)) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.List,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = "Sin historial aun.\nVisita el detalle de un anime o importa tu history.json del CLI.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                PantallaVacia(
+                    mensaje = "Sin historial aun.\nVisita el detalle de un anime o importa tu history.json del CLI.",
+                    icono = Icons.AutoMirrored.Filled.List,
+                    modifier = Modifier.align(Alignment.Center),
+                )
             }
 
             else -> LazyColumn(Modifier.weight(1f)) {

@@ -14,8 +14,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -34,7 +32,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.zhuchii.anies.scraper.model.AnimeSummary
 import com.zhuchii.anies.scraper.model.Source
+import com.zhuchii.anies.ui.components.Cargando
+import com.zhuchii.anies.ui.components.ErrorReintento
 import com.zhuchii.anies.ui.components.FilaAnime
+import com.zhuchii.anies.ui.components.PantallaVacia
 
 /** Contenedor stateful: fuente seleccionada y sus pestañas de contenido. */
 @Composable
@@ -148,29 +149,19 @@ private fun ListaHome(
 ) {
     Box(modifier.fillMaxWidth()) {
         when {
-            cargando -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-            error != null -> Column(Modifier.align(Alignment.Center)) {
-                Text(
-                    text = "No se pudo cargar la portada: $error",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                Spacer(Modifier.height(8.dp))
-                Button(onClick = onReintentar) { Text("Reintentar") }
-            }
+            cargando -> Cargando(Modifier.align(Alignment.Center))
 
-            animes.isEmpty() -> Column(Modifier.align(Alignment.Center)) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.List,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    text = "Sin animes en esta lista.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            error != null -> ErrorReintento(
+                mensaje = "No se pudo cargar la portada: $error",
+                onReintentar = onReintentar,
+                modifier = Modifier.align(Alignment.Center),
+            )
+
+            animes.isEmpty() -> PantallaVacia(
+                mensaje = "Sin animes en esta lista.",
+                icono = Icons.AutoMirrored.Filled.List,
+                modifier = Modifier.align(Alignment.Center),
+            )
 
             else -> LazyColumn(Modifier.fillMaxSize()) {
                 items(
@@ -213,12 +204,11 @@ private fun PestanaBuscar(
 
         Box(Modifier.fillMaxWidth().weight(1f)) {
             when {
-                uiState.buscando -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                uiState.buscando -> Cargando(Modifier.align(Alignment.Center))
 
-                uiState.errorBuscar != null -> Text(
-                    text = "No se pudo buscar: ${uiState.errorBuscar}",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
+                uiState.errorBuscar != null -> ErrorReintento(
+                    mensaje = "No se pudo buscar: ${uiState.errorBuscar}",
+                    onReintentar = onBuscar,
                     modifier = Modifier.align(Alignment.Center),
                 )
 
@@ -231,9 +221,9 @@ private fun PestanaBuscar(
                     }
                 }
 
-                else -> Text(
-                    text = "Sin resultados para ${uiState.fuente.label}.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                else -> PantallaVacia(
+                    mensaje = "Sin resultados para ${uiState.fuente.label}.",
+                    icono = Icons.AutoMirrored.Filled.List,
                     modifier = Modifier.align(Alignment.Center),
                 )
             }

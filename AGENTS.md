@@ -397,6 +397,19 @@ CLI). Se incorporara como cache local en F3/Room.
   del reporte); el fix corta la clase completa y se confirma en el proximo
   build interactivo.
 
+- `2026-09-20` UI: mini design system base. `CoverImage` (miniatura SIEMPRE con
+  placeholder sobre surfaceVariant; grillas usan aspectRatio 2/3) y
+  `PantallaEstado` (`Cargando`/`ErrorReintento`/`PantallaVacia` stateless);
+  `FilaAnime` refactorizada sobre `CoverImage`. Plataforma (home y pestana
+  buscar), Busqueda, Biblioteca e Historial usan los nuevos estados en vez de
+  `when` con Box + posiciones. Convenciones documentadas en `docs/ui.md`
+  (piezas, reglas y convenciones de navegacion/estado).
+- `2026-09-20` fix v0.9.5 (2): el gesto de atras desde pantalla completa ya no
+  entra en el bucle de rotacion (confirmado por el usuario en el build
+  interactivo). Queda dentro de la clase: toda transicion pasa por
+  `solicitarPantallaCompleta` con guarda `transicionando` de 800ms y
+  `DisposableEffect` restaura PORTRAIT al salir del reproductor.
+
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
 Skills curadas para este port (NO instalar colecciones masivas genericas;

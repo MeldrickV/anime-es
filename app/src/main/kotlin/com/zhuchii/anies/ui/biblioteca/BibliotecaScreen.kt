@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.zhuchii.anies.scraper.model.AnimeSummary
+import com.zhuchii.anies.ui.components.Cargando
 import com.zhuchii.anies.ui.components.FilaAnime
+import com.zhuchii.anies.ui.components.PantallaVacia
 
 /** Biblioteca: favoritos guardados en Room. Click abre detalle; la X lo quita. */
 @Composable
@@ -48,23 +49,15 @@ fun BibliotecaScreen(
 
         when {
             uiState.cargando -> Box(Modifier.fillMaxWidth().weight(1f)) {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
+                Cargando(Modifier.align(Alignment.Center))
             }
 
             uiState.animes.isEmpty() -> Box(Modifier.fillMaxWidth().weight(1f)) {
-                Column(Modifier.align(Alignment.Center)) {
-                    Icon(
-                        imageVector = Icons.Filled.Favorite,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = "Sin favoritos todavia.\nAbre un anime y toca el corazon para guardarlo.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                PantallaVacia(
+                    mensaje = "Sin favoritos todavia.\nAbre un anime y toca el corazon para guardarlo.",
+                    icono = Icons.Filled.Favorite,
+                    modifier = Modifier.align(Alignment.Center),
+                )
             }
 
             else -> LazyColumn(Modifier.weight(1f)) {
