@@ -311,7 +311,43 @@ CLI). Se incorporara como cache local en F3/Room.
   Estado vacio de populares/recientes en Plataforma centrado con icono (mismo
   patron que Biblioteca/Historial). F7 cerrado con su primer CI verde; la
   fase Estable se cumple: `assembleDebug` produce `app-debug.apk` (v0.9.0).
-  Pendiente solo: crear el remoto de GitHub.
+- `2026-09-19` F8: pantalla completa horizontal en el player sin depender del
+  bloqueo de rotacion: `configChanges="orientation|screenSize|keyboardHidden"`
+  en MainActivity (evita recrear/ reiniciar el video), boton nativo de Media3
+  (`setFullscreenButtonClickListener` estable + `setFullscreenButtonState`
+  UnstableApi bajo el `@OptIn`/`@SuppressLint` ya presentes) que fuerza
+  `SCREEN_ORIENTATION_LANDSCAPE`, oculta cabecera + system bars (inmersivo
+  `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`) y al salir vuelve al
+  `SCREEN_ORIENTATION_PORTRAIT` (decidido con el usuario). El click del boton
+  no captura `enPantallaCompleta` del factory (quedaria stale): se lee con
+  `rememberUpdatedState`.
+- `2026-09-19` F8: episodios en modo lista (LazyColumn, fila = numero en
+  bulto + badge visto) EMBEBIDOS en el detalle: se elimina `EpisodiosScreen`
+  y la ruta `episodios/{source}/{slug}`; `DetalleScreen` monta su propio
+  `EpisodiosViewModel` (key `episodios-$source-$slug`) y un solo LazyColumn
+  pinta cabecera + episodios; FAB `Empezar`/`Continuar` salta al primer
+  episodio no visto (vistos de F6). Click de episodio -> player directo.
+- `2026-09-19` F8: AnimeFLV dejo de reproducirse porque los hosts de los
+  embeds (bysesukior, dooodster, ...) ahora sirven una SPA de JS que resuelve
+  el .m3u8/.mp4 por XHR/fetch: el HTML NO trae URL directa, asique
+  `extraerUrlVideo` (y el CLI, misma regex) devuelve null. Fix SOLO en la
+  app: `ResolverEmbedWebView` (injectado en `AnimeFlvScraper.video` como
+  `resolverEmbed`, default null = ruta CLI para los tests JVM) ejecuta el
+  embed en un WebView oculto reutilizado (resumeTimers, cookies,
+  User-Agent navegador), captura en `shouldInterceptRequest` la primera
+  peticion .m3u8/.mp4, con fallback de `video.currentSrc`, Referer=capurl al
+  cargar y timeout 12s (Runnable reutilizable). Es una excepcion documentada
+  a la regla "1:1 del Bash": la fuente cambio y el port se adapta.
+- `2026-09-19` F8 CI-fix: 1) `companion.appInstance = this` compila? NO
+  (`Unresolved reference 'companion'`) -> asignar el campo de la companion
+  directamente; 2) `Handler.postDelayed(...)` devuelve `Boolean`, no el
+  Runnable: guardar el `Runnable` para poder `removeCallbacks` en la
+  cancelacion.
+- `2026-09-19` F8: el remoto ya existe (MeldrickV/anime-es) y CI corre con
+  DPT/git + API de GitHub desde esta maquina (PAT del usuario). El item F7
+  "Pendiente: crear el remoto" queda obsoleto; el flujo es push -> CI ->
+  version.yml amendea con [skip ci] + force-push (re-fetch/rebase antes de
+  cada push local, reset --hard al final).
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
@@ -341,4 +377,9 @@ chrisbanes/skills, noloman/Android-AI-skills, Google Android skills.
 - [x] F5: player Media3 con headers (Referer/User-Agent) en el movil.
 - [x] F6: badges de no vistos + sincronizar historial desde history.json.
 - [x] F7: pulido (navegacion, dark mode, estados vacios, Lint 0 deps).
-- [ ] Crear el remoto de GitHub (lo hace el usuario) y conectar.
+- [x] F8: fullscreen horizontal del player (sin depender del bloqueo de
+      rotacion, vuelve a vertical), episodios en detalle en modo lista con
+      FAB Empezar/Continuar, y resolucion de embeds JS-SPA de AnimeFLV via
+      WebView oculto (adaptacion al cambio de los hosts de video).
+- [x] Crear el remoto de GitHub (hecho: MeldrickV/anime-es) y conectar;
+      CI por push + version.yml autobump.
