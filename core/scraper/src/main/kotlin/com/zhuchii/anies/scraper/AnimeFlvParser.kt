@@ -36,6 +36,13 @@ object AnimeFlvParser {
         "&quot;" to "\"", "&#039;" to "'", "&nbsp;" to " "
     )
 
+    /** Cover de cada resultado: el <figure class="i"> de la ficha trae la
+     *  portada lazy (`data-src`) sobre el mismo <a href="./anime/<slug>">. */
+    private val PORTADA_BUSQUEDA = Regex(
+        """<a href="\./anime/([^"]+)"[^>]*>.*?data-src="([^"]+)"""",
+        RegexOption.DOT_MATCHES_ALL,
+    )
+
     /** Limpia el titulo: quita tags residuales y decodifica entidades HTML. */
     fun limpiarTitulo(raw: String): String {
         var texto = TAG_REGEX.replace(raw, "")
@@ -44,18 +51,25 @@ object AnimeFlvParser {
     }
 
     /** Devuelve la lista de animes encontrados en una pagina de resultados AnimeFLV. */
-    fun parseBusqueda(html: String): List<AnimeSummary> =
-        BUSQUEDA_REGEX.findAll(html)
+    fun parseBusqueda(html: String): List<AnimeSummary> {
+        val portadas = PORTADA_BUSQUEDA.findAll(html)
+            .associate { match ->
+                val (slug, cover) = match.destructured
+                slug to cover
+            }
+        return BUSQUEDA_REGEX.findAll(html)
             .map { match ->
                 val (slug, rawTitulo) = match.destructured
                 AnimeSummary(
                     source = Source.ANIME_FLV,
                     slug = slug,
                     title = limpiarTitulo(rawTitulo),
+                    coverUrl = portadas[slug]?.takeIf { it.startsWith("http") },
                 )
             }
             .distinctBy { it.slug }
             .toList()
+    }
 
     private val DETALLE_COVER = Regex("""class="info-l".*?data-src="([^"]+)"""", RegexOption.DOT_MATCHES_ALL)
     private val DETALLE_COVER_OG = Regex("""<meta property="og:image" content="([^"]+)"""")
@@ -91,20 +105,52 @@ object AnimeFlvParser {
         """href="[^"]*?/ver/([^"/]+?)-\d+"[^>]*title="Ver ([^"]+?) episodio \d+""",
         RegexOption.DOT_MATCHES_ALL,
     )
+    /** Portada de un anime en el home («Animes en Emision»): <figure class="i">
+     *  que apunta a ./anime/<slug> con data-src lazy. */
+    private val HOME_PORTADA = Regex(
+        """<a href="\./anime/([^"]+)"[^>]*>.*?data-src="([^"]+)"""",
+        RegexOption.DOT_MATCHES_ALL,
+    )
+    /** Portada de un episodio reciente («Ultimos episodios agregados»): ancla
+     *  /ver/<slug>-<cap> con la miniatura del anime en data-src. */
+    private val HOME_PORTADA_VER = Regex(
+        """<a href="[^"]*?/ver/([^"/]+?)-\d+"[^>]*>.*?data-src="([^"]+)"""",
+        RegexOption.DOT_MATCHES_ALL,
+    )
 
     /** Portada: populares = seccion "Animes en Emision", recientes = "Ultimos
      *  episodios agregados" (episodios nuevos, mapeados a su anime). */
     fun parseHome(html: String): HomeAnimes {
         val emision = seccion(html, "Animes en Emisión")
         val recientes = seccion(html, "Últimos episodios agregados")
+        val portadas = HOME_PORTADA.findAll(emision)
+            .associate { match ->
+                val (slug, cover) = match.destructured
+                slug to cover
+            }
+        val portadasRecientes = HOME_PORTADA_VER.findAll(recientes)
+            .associate { match ->
+                val (slug, cover) = match.destructured
+                slug to cover
+            }
         return HomeAnimes(
             populares = HOME_EMISION.findAll(emision).map { match ->
                 val (slug, rawTitulo) = match.destructured
-                AnimeSummary(Source.ANIME_FLV, slug, limpiarTitulo(rawTitulo))
+                AnimeSummary(
+                    source = Source.ANIME_FLV,
+                    slug = slug,
+                    title = limpiarTitulo(rawTitulo),
+                    coverUrl = portadas[slug]?.takeIf { it.startsWith("http") },
+                )
             }.distinctBy { it.slug }.toList(),
             recientes = HOME_EPISODIOS.findAll(recientes).map { match ->
                 val (slug, titulo) = match.destructured
-                AnimeSummary(Source.ANIME_FLV, slug, limpiarTitulo(titulo))
+                AnimeSummary(
+                    source = Source.ANIME_FLV,
+                    slug = slug,
+                    title = limpiarTitulo(titulo),
+                    coverUrl = portadasRecientes[slug]?.takeIf { it.startsWith("http") },
+                )
             }.distinctBy { it.slug }.toList(),
         )
     }

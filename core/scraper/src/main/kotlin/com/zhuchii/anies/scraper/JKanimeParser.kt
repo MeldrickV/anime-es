@@ -27,19 +27,32 @@ object JKanimeParser {
 
     private val BUSQUEDA_REGEX = Regex("""<h5><a\s+href="([^"]+)"[^>]*>([^<]*)</a></h5>""")
 
+    /** Cover de cada resultado: el .anime__item trae la portada como imagen de
+     *  fondo (`data-setbg`) justo antes de su <h5><a href=".../slug/">Titulo. */
+    private val BUSQUEDA_COVER = Regex(
+        """data-setbg="(https://[^"]+)"[\s\S]*?<h5><a\s+href="([^"]+)"[^>]*>[^<]*</a></h5>"""
+    )
+
     /** Devuelve la lista de animes encontrados en una pagina de resultados J-Kanime. */
-    fun parseBusqueda(html: String): List<AnimeSummary> =
-        BUSQUEDA_REGEX.findAll(html)
+    fun parseBusqueda(html: String): List<AnimeSummary> {
+        val portadas = BUSQUEDA_COVER.findAll(html)
+            .associate { match ->
+                val (cover, href) = match.destructured
+                slugDeHref(href) to cover
+            }
+        return BUSQUEDA_REGEX.findAll(html)
             .map { match ->
                 val (href, titulo) = match.destructured
                 AnimeSummary(
                     source = Source.J_KANIME,
                     slug = slugDeHref(href) ?: slugDelTitulo(titulo),
                     title = titulo.trim(),
+                    coverUrl = slugDeHref(href)?.let { portadas[it]?.takeIf { c -> c.startsWith("http") } },
                 )
             }
             .distinctBy { it.slug }
             .toList()
+    }
 
     private fun slugDeHref(href: String): String? = try {
         val path = URI(href).path?.trim('/') ?: return null
@@ -95,7 +108,7 @@ object JKanimeParser {
         """<a[^>]*href="https://jkanime\.net/([^"/]+)/"[^>]*>(.*?)</a>""",
         RegexOption.DOT_MATCHES_ALL,
     )
-    private val HOME_IMG = Regex("""<img[^>]*src="([^"]+)"[^>]*alt="([^"]*)"""")
+    private val HOME_IMG = Regex("""<img[^>]*(?:src|data-setbg)="([^"]+)"[^>]*alt="([^"]*)"""")
 
     /** Portada: populares = "Top animes", recientes = "Animes recientes". */
     fun parseHome(html: String): HomeAnimes {
