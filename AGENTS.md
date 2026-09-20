@@ -348,6 +348,27 @@ CLI). Se incorporara como cache local en F3/Room.
   "Pendiente: crear el remoto" queda obsoleto; el flujo es push -> CI ->
   version.yml amendea con [skip ci] + force-push (re-fetch/rebase antes de
   cada push local, reset --hard al final).
+- `2026-09-20` fix v0.9.3 (diagnosticado desde logcat del movil, sin test
+  interactivo): 1) crash de AnimeFLV al cargar un capitulo = `reportar()` en
+  `ResolverEmbedWebView` se invocaba desde `shouldInterceptRequest`, que WebView
+  llama en su thread de fondo (`ThreadPoolForeg`); ahi tocaba
+  `view.stopLoading()` y `cont.resume()` fuera del main looper ->
+  `RuntimeException: A WebView method was called on thread...` (dialogo de
+  crash; el primer caso murio sin dialogo). Fix: todo el reporte ("encontrada" +
+  stopLoading + resume) pasa por `Handler(Looper.getMainLooper()).post`, con la
+  guarda de doble-resume dentro del post. 2) fullscreen reiniciaba el video y
+  no agrandaba nada: en `PlayerScreen` el `ReproductorPlayback` se montaba en
+  ramas if/else distintas (Box vs Column) y el `remember(player)` se desechaba
+  al alternar -> ExoPlayer nuevo desde cero. Fix: posicion de composicion UNICA
+  para el reproductor dentro de un Box, y la cabecera se quita con
+  `padding(top = 0/56dp)` segun `enPantallaCompleta` (sin desmontar el player).
+  Hallazgos de doblaje (revisados): J-Kanime SI tiene seccion latino
+  (`jkanime.net/categoria/latino/`, ~30 series, e.g. Hunter x Hunter 2011
+  "Latino" fan-dub, Beyblade, Inazuma Eleven) y el player de episodio ofrece
+  audio "Espanol latino" en esas series. AnimeFLV (vww.animeflv.one) NO separa
+  doblaje en el catalogo: todo figura "Sub español latino"; el audio latino,
+  cuando existe, va por servidor dentro del mismo episodio (por eso el CLI
+  prefiere mp4upload). Sin cambios de codigo por ahora, solo nota.
 
 ## 10. Skills del proyecto (carpeta .opencode/skills)
 
