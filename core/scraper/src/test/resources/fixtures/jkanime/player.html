@@ -17,7 +17,7 @@
     </script>
 
     <!-- Script -->
-    <script src="https://cdn.jkdesa.com/assets/filters-save.js?v=1789856998"></script>
+    <script src="https://cdn.jkdesa.com/assets/filters-save.js?v=1789992343"></script>
 
     <script src="https://cdn.jkdesa.com/assets/dplayer-1.27.js?v=1.24"></script>
 
@@ -207,7 +207,7 @@ button.skip-intro {
                 hotkey: true,
 
                 video: {
-                    url: 'https://nika.playmudos.com/onupiesz/cnlMWjlMOEVVOU8ybjlYTEhsM3hJR0JyR0xRWGxTMExmbHROSXYvSXFvWT0.m3u8?st=9qwlnE8dfTJMQxrc8qo6GQ&e=1789867798',
+                    url: 'https://nika.playmudos.com/onupiesz/cnlMWjlMOEVVOU8ybjlYTEhsM3hJR0JyR0xRWGxTMExmbHROSXYvSXFvWT0.m3u8?st=UqLxTWlnh8j76huk6Yphmw&e=1790003143',
                     pic: 'https://cdn.jkdesa.com/assets/images/animes/video/image/jkvideo_c457d7ae48d08a6b84bc0b1b9bd7d474.jpg',            type: 'customHls', // Usamos un tipo personalizado
         customType: {
             customHls: function (video, url) {
@@ -243,14 +243,14 @@ button.skip-intro {
                 hotkey: true,
                 chromecast: true,
                 video: {
-                    url: atob('aHR0cHM6Ly9uaWthLnBsYXltdWRvcy5jb20vb251cGllc3ovY25sTVdqbE1PRVZWT1U4eWJqbFlURWhzTTNoSlIwSnlSMHhSV0d4VE1FeG1iSFJPU1hZdlNYRnZXVDAubTN1OD9zdD05cXdsbkU4ZGZUSk1ReHJjOHFvNkdRJmU9MTc4OTg2Nzc5OA=='),
+                    url: atob('aHR0cHM6Ly9uaWthLnBsYXltdWRvcy5jb20vb251cGllc3ovY25sTVdqbE1PRVZWT1U4eWJqbFlURWhzTTNoSlIwSnlSMHhSV0d4VE1FeG1iSFJPU1hZdlNYRnZXVDAubTN1OD9zdD1VcUx4VFdsbmg4ajc2aHVrNllwaG13JmU9MTc5MDAwMzE0Mw=='),
                     pic: 'https://cdn.jkdesa.com/assets/images/animes/video/image/jkvideo_c457d7ae48d08a6b84bc0b1b9bd7d474.jpg',                      type: 'customHls', // Usamos un tipo personalizado
         customType: {
             customHls: function (video, url) {
                 // Aquí forzamos la inicialización de hls.js
                 if (Hls.isSupported()) {
                     var hls = new Hls();
-                    hls.loadSource( 'https://nika.playmudos.com/onupiesz/cnlMWjlMOEVVOU8ybjlYTEhsM3hJR0JyR0xRWGxTMExmbHROSXYvSXFvWT0.m3u8?st=9qwlnE8dfTJMQxrc8qo6GQ&e=1789867798');
+                    hls.loadSource( 'https://nika.playmudos.com/onupiesz/cnlMWjlMOEVVOU8ybjlYTEhsM3hJR0JyR0xRWGxTMExmbHROSXYvSXFvWT0.m3u8?st=UqLxTWlnh8j76huk6Yphmw&e=1790003143');
                     hls.attachMedia(video);
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     // Fallback nativo para Safari, etc
