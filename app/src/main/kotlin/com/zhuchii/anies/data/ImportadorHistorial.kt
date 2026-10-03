@@ -86,25 +86,27 @@ class ImportadorHistorial(
     }
 
     /** Resuelve via `excepciones.json`: candidata -> URL real -> detalle. */
-    private suspend fun porExcepcion(source: Source, titulo: String): AnimeSummary? = try {
-        val base = when (source) {
-            Source.J_KANIME -> "https://jkanime.net"
-            Source.ANIME_FLV -> return null
+    private suspend fun porExcepcion(source: Source, titulo: String): AnimeSummary? {
+        return try {
+            val base = when (source) {
+                Source.J_KANIME -> "https://jkanime.net"
+                Source.ANIME_FLV -> return null
+            }
+            val real = excepciones.resolver("$base/${slugDeTitulo(titulo)}/") ?: return null
+            val slug = real.trimEnd('/').substringAfterLast('/')
+            if (slug.isBlank()) return null
+            val detalle = busqueda.detalle(source, slug)
+            AnimeSummary(
+                source = source,
+                slug = slug,
+                title = detalle.title.ifBlank { titulo },
+                coverUrl = detalle.coverUrl,
+            )
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (_: Throwable) {
+            null
         }
-        val real = excepciones.resolver("$base/${slugDeTitulo(titulo)}/") ?: return null
-        val slug = real.trimEnd('/').substringAfterLast('/')
-        if (slug.isBlank()) return null
-        val detalle = busqueda.detalle(source, slug)
-        AnimeSummary(
-            source = source,
-            slug = slug,
-            title = detalle.title.ifBlank { titulo },
-            coverUrl = detalle.coverUrl,
-        )
-    } catch (ce: CancellationException) {
-        throw ce
-    } catch (_: Throwable) {
-        null
     }
 
     /** Mismo saneamiento titulo->slug del CLI y del parser. */
