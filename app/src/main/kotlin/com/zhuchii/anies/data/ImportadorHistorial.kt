@@ -2,6 +2,7 @@ package com.zhuchii.anies.data
 
 import com.zhuchii.anies.scraper.HistoriaCli
 import com.zhuchii.anies.scraper.HistoryJsonParser
+import com.zhuchii.anies.scraper.ExcepcionesRemotas
 import com.zhuchii.anies.scraper.model.AnimeSummary
 import com.zhuchii.anies.scraper.model.Source
 import kotlinx.coroutines.CancellationException
@@ -33,6 +34,7 @@ class ImportadorHistorial(
     private val busqueda: BusquedaRepository,
     private val progreso: ProgresoRepository,
     private val historial: HistorialRepository,
+    private val excepciones: ExcepcionesRemotas = ExcepcionesRemotas(),
 ) {
     suspend fun importar(entradas: Map<String, HistoriaCli>): ResultadoImportacion {
         var importados = 0
@@ -75,10 +77,43 @@ class ImportadorHistorial(
     }
 
     private suspend fun resolverTitulo(source: Source, titulo: String): AnimeSummary? {
+        // 1) Override remoto (slugs truncados que el saneado no resuelve).
+        porExcepcion(source, titulo)?.let { return it }
+        // 2) Busqueda real + match normalizado (via anterior).
         val buscado = normalizar(titulo)
         return busqueda.buscarEn(source, titulo)
             .firstOrNull { normalizar(it.title) == buscado }
     }
+
+    /** Resuelve via `excepciones.json`: candidata -> URL real -> detalle. */
+    private suspend fun porExcepcion(source: Source, titulo: String): AnimeSummary? = try {
+        val base = when (source) {
+            Source.J_KANIME -> "https://jkanime.net"
+            Source.ANIME_FLV -> return null
+        }
+        val real = excepciones.resolver("$base/${slugDeTitulo(titulo)}/") ?: return null
+        val slug = real.trimEnd('/').substringAfterLast('/')
+        if (slug.isBlank()) return null
+        val detalle = busqueda.detalle(source, slug)
+        AnimeSummary(
+            source = source,
+            slug = slug,
+            title = detalle.title.ifBlank { titulo },
+            coverUrl = detalle.coverUrl,
+        )
+    } catch (ce: CancellationException) {
+        throw ce
+    } catch (_: Throwable) {
+        null
+    }
+
+    /** Mismo saneamiento titulo->slug del CLI y del parser. */
+    private fun slugDeTitulo(titulo: String): String =
+        titulo.map { c -> if (c.isLetterOrDigit() || c == ' ') c else ' ' }
+            .joinToString("")
+            .trim()
+            .replace(Regex("\\s+"), "-")
+            .lowercase()
 
     private fun normalizar(s: String): String =
         s.trim().lowercase().replace(Regex("\\s+"), " ")
