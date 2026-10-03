@@ -80,6 +80,7 @@ fun PlayerScreen(
     viewModel: ReproductorViewModel = viewModel { ReproductorViewModel(source, slug, cap) },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val posicionInicial by viewModel.posicionInicial.collectAsStateWithLifecycle()
     var enPantallaCompleta by rememberSaveable { mutableStateOf(false) }
     var transicionando by remember { mutableStateOf(false) }
     val activity = LocalContext.current.findActivity()
@@ -179,6 +180,7 @@ fun PlayerScreen(
             is ReproductorUiState.Listo -> Box(Modifier.fillMaxSize().padding(top = paddingArriba)) {
                 ReproductorPlayback(
                     video = estado.video,
+                    posicionInicialMs = posicionInicial,
                     onGuardarProgreso = viewModel::guardarProgreso,
                     enPantallaCompleta = enPantallaCompleta,
                     onCambiarPantallaCompleta = ::solicitarPantallaCompleta,
@@ -193,6 +195,7 @@ fun PlayerScreen(
 @Composable
 private fun ReproductorPlayback(
     video: VideoFuente,
+    posicionInicialMs: Long?,
     onGuardarProgreso: (Long, Long) -> Unit,
     enPantallaCompleta: Boolean,
     onCambiarPantallaCompleta: (Boolean) -> Unit,
@@ -222,6 +225,16 @@ private fun ReproductorPlayback(
             setMediaSource(mediaSource)
             prepare()
             playWhenReady = true
+        }
+    }
+    // Reanuda donde quedo (port del `mpv --start=$progress` del CLI):
+    // un solo seek cuando la posicion guardada ya cargo.
+    var reanudado by remember(video.url) { mutableStateOf(false) }
+    LaunchedEffect(player, posicionInicialMs) {
+        val pos = posicionInicialMs
+        if (!reanudado && pos != null && pos > 0) {
+            reanudado = true
+            player.seekTo(pos)
         }
     }
     var errorText by remember { mutableStateOf<String?>(null) }

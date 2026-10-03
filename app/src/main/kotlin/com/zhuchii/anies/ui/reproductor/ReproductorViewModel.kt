@@ -31,8 +31,28 @@ class ReproductorViewModel(
     private val _uiState = MutableStateFlow<ReproductorUiState>(ReproductorUiState.Resolviendo)
     val uiState: StateFlow<ReproductorUiState> = _uiState.asStateFlow()
 
+    /** Posicion guardada del episodio para reanudar (null = empezar de cero). */
+    private val _posicionInicial = MutableStateFlow<Long?>(null)
+    val posicionInicial: StateFlow<Long?> = _posicionInicial.asStateFlow()
+
     init {
         cargar()
+        viewModelScope.launch {
+            try {
+                val previo = progreso.obtener(source, slug, cap.toIntOrNull() ?: 1)
+                // Solo reanuda si hay avance real y no quedo al final (margen 30s).
+                val pos = previo?.posicionMs ?: 0L
+                val dur = previo?.duracionMs ?: 0L
+                _posicionInicial.value = when {
+                    pos > 10_000 && (dur <= 0L || pos < dur - 30_000) -> pos
+                    else -> null
+                }
+            } catch (ce: CancellationException) {
+                throw ce
+            } catch (_: Throwable) {
+                _posicionInicial.value = null
+            }
+        }
     }
 
     fun cargar() {
