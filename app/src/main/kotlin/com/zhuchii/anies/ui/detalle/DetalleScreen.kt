@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
+import com.zhuchii.anies.scraper.JKanimeParser
 import com.zhuchii.anies.scraper.model.AnimeDetalle
 import com.zhuchii.anies.scraper.model.Source
 import com.zhuchii.anies.ui.episodios.EpisodiosUiState
@@ -186,6 +187,8 @@ private fun ContenidoDetalle(
                 val etiquetas = listOfNotNull(
                     detalle.estado,
                     detalle.episodeCount.takeIf { it > 0 }?.let { "$it episodios" },
+                    detalle.idiomas.takeIf { it.isNotEmpty() }
+                        ?.joinToString(" + ") { JKanimeParser.etiquetaIdioma(it) },
                 )
                 if (etiquetas.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))

@@ -28,4 +28,7 @@ data class AnimeDetalle(
     val tags: List<String> = emptyList(),
     val episodeCount: Int = 0,
     val estado: String? = null,
+    /** Slugs de idioma de la pagina (p. ej. "espanol-latino", "japones").
+     *  Port del grep `/idioma/` del CLI; vacio si la pagina no los trae. */
+    val idiomas: List<String> = emptyList(),
 )

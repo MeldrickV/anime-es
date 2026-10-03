@@ -80,6 +80,9 @@ object JKanimeParser {
     private val DETALLE_GENERO_LINK = Regex("""href="[^"]*/genero/[^"]+"[^>]*>([^<]+)</a>""")
     private val DETALLE_EPISODIOS = Regex("""Episodios:</span>\s*(\d+)""")
     private val DETALLE_ESTADO = Regex("""Estado:</span>\s*<div[^>]*>([^<]+)""")
+    /** Slugs de idioma: `<a href="https://jkanime.net/idioma/<slug>">`
+     *  (port del grep `/idioma/` del CLI). */
+    private val DETALLE_IDIOMA = Regex("""href="https://jkanime\.net/idioma/([^"/]+)"""")
 
     /** Detalle de un anime: cover, sinopsis, generos, episodios y estado. */
     fun parseDetalle(html: String): AnimeDetalle {
@@ -99,7 +102,24 @@ object JKanimeParser {
             tags = generos,
             episodeCount = DETALLE_EPISODIOS.find(html)?.groupValues?.get(1)?.toIntOrNull() ?: 0,
             estado = DETALLE_ESTADO.find(html)?.groupValues?.get(1)?.trim(),
+            idiomas = parseIdiomas(html),
         )
+    }
+
+    /** Slugs de idioma de la pagina, sin duplicados (port del CLI). */
+    fun parseIdiomas(html: String): List<String> =
+        DETALLE_IDIOMA.findAll(html)
+            .map { it.groupValues[1].trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .toList()
+
+    /** Etiqueta legible de un slug de idioma (mismo mapeo del CLI). */
+    fun etiquetaIdioma(slug: String): String = when (slug) {
+        "espanol-latino" -> "Doblaje latino"
+        "japones" -> "Subtitulado"
+        "espanol-castellano" -> "Castellano"
+        else -> slug
     }
 
     // ---- Portada (home, F2) ----

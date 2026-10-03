@@ -82,6 +82,18 @@ class JKanimeParserTest {
     }
 
     @Test
+    fun `parseDetalle extrae idiomas de la pagina`() {
+        val html = Fixtures.cargar("jkanime/detalle.html")
+
+        assertEquals(listOf("japones"), JKanimeParser.parseIdiomas(html))
+        assertEquals(listOf("japones"), JKanimeParser.parseDetalle(html).idiomas)
+        assertEquals("Subtitulado", JKanimeParser.etiquetaIdioma("japones"))
+        assertEquals("Doblaje latino", JKanimeParser.etiquetaIdioma("espanol-latino"))
+        assertEquals("Castellano", JKanimeParser.etiquetaIdioma("espanol-castellano"))
+        assertTrue(JKanimeParser.parseIdiomas("<html></html>").isEmpty())
+    }
+
+    @Test
     fun `parseEpisodios genera 1..total desde el ajax real`() {
         val episodios = JKanimeParser.parseEpisodios(Fixtures.cargar("jkanime/episodios.json"))
 
